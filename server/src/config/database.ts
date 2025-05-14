@@ -1,7 +1,8 @@
 import mongoose from 'mongoose';
 import logger from '../utils/logger';
+import { env } from './env';
 
-const MONGO_URI = process.env.MONGO_URI!;
+const MONGO_URI = env.MONGO_URI!;
 
 export const connectDB = async () => {
   try {
