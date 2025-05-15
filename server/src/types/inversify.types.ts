@@ -6,6 +6,7 @@ const TYPES = {
   //Services
   UserService: Symbol.for('UserService'),
   TokenService: Symbol.for('TokenService'),
+  MailService: Symbol.for('MailService'),
   //Controllers
   UserController: Symbol.for('UserController'),
 };

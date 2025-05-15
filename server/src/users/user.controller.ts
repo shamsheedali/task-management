@@ -1,7 +1,7 @@
 import { inject, injectable } from 'inversify';
 import { Request, Response } from 'express';
 import TYPES from '../types/inversify.types';
-import { RegisterInput, LoginInput } from './user.validator';
+import { RegisterInput, LoginInput, VerifyOtpInput } from './user.validator';
 import { toUserResponseDTO, UserResponseDTO } from './user.dto';
 import ResponseMessages from '../common/constants/response';
 import HttpStatus from '../common/constants/httpStatus';
@@ -22,7 +22,18 @@ export default class UserController {
   }
 
   async register(req: Request<{}, {}, RegisterInput>, res: Response) {
-    const user = await this._userService.registerUser(req.body);
+    await this._userService.initiateRegistration(req.body);
+    res.status(HttpStatus.OK).json({
+      status: 'success',
+      message: 'OTP sent to email. Please verify to complete registration.',
+    });
+  }
+
+  async verifyAndRegister(req: Request<{}, {}, VerifyOtpInput>, res: Response) {
+    const user = await this._userService.verifyAndRegister(
+      req.body.email,
+      req.body.otp
+    );
     const accessToken = this._tokenService.generateAccessToken(user._id);
     const refreshToken = this._tokenService.generateRefreshToken(user._id);
     this._tokenService.setRefreshTokenCookie(res, refreshToken);

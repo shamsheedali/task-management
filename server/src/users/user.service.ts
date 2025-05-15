@@ -1,38 +1,114 @@
 import { inject, injectable } from 'inversify';
 import bcrypt from 'bcryptjs';
+import redisClient from '../config/redis';
 import TYPES from '../types/inversify.types';
 import { RegisterInput, LoginInput } from './user.validator';
 import { IUser } from './user.model';
 import { IUserRepository } from './interfaces/user-repository.interface';
+import { IMailService } from '../common/interfaces/mail-service.interface';
 import { AppError } from '../utils/appError';
 import ResponseMessages from '../common/constants/response';
 import HttpStatus from '../common/constants/httpStatus';
-import { IUserService } from './interfaces/user-service.interface';
+import { env } from '../config/env';
+import logger from '../utils/logger';
 
 @injectable()
-export default class UserService implements IUserService {
+export default class UserService {
   private _userRepository: IUserRepository;
+  private _mailService: IMailService;
 
-  constructor(@inject(TYPES.UserRepository) repository: IUserRepository) {
+  constructor(
+    @inject(TYPES.UserRepository) repository: IUserRepository,
+    @inject(TYPES.MailService) mailService: IMailService
+  ) {
     this._userRepository = repository;
+    this._mailService = mailService;
   }
 
-  async registerUser(dto: RegisterInput): Promise<IUser> {
+  async initiateRegistration(dto: RegisterInput): Promise<void> {
     const existingUser = await this._userRepository.findByEmail(dto.email);
     if (existingUser) {
       throw new AppError(
         ResponseMessages.USER_ALREADY_EXISTS,
-        HttpStatus.BAD_REQUEST,
-        true
+        HttpStatus.BAD_REQUEST
       );
     }
 
-    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const mailOptions = {
+      from: env.EMAIL_USER || '',
+      to: dto.email,
+      subject: 'Your OTP Code',
+      text: `Your OTP code is ${otp}. It expires in 5 minutes.`,
+    };
+
+    try {
+      // Store pending user data in Redis
+      const pendingUserKey = `pending:user:${dto.email}`;
+      await redisClient.set(pendingUserKey, JSON.stringify(dto), { EX: 300 }); // 5 min expiry
+
+      // Send OTP
+      await this._mailService.sendMail(mailOptions);
+      await redisClient.set(`otp:${dto.email}`, otp, { EX: 300 }); // 5 min expiry
+      logger.info(`OTP sent to ${dto.email}: ${otp}`);
+    } catch (error) {
+      logger.error('Failed to initiate registration', {
+        error: (error as Error).message,
+      });
+      throw new AppError(
+        'Failed to send OTP',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  async verifyAndRegister(email: string, otp: string): Promise<IUser> {
+    // Verify OTP
+    const storedOtp = await redisClient.get(`otp:${email}`);
+    if (!storedOtp) {
+      throw new AppError('OTP not found or expired', HttpStatus.BAD_REQUEST);
+    }
+
+    if (otp !== storedOtp) {
+      throw new AppError('Invalid OTP', HttpStatus.BAD_REQUEST);
+    }
+
+    // Retrieve pending user data
+    const pendingUserKey = `pending:user:${email}`;
+    const pendingUserData = await redisClient.get(pendingUserKey);
+    if (!pendingUserData) {
+      throw new AppError('No pending user data found', HttpStatus.BAD_REQUEST);
+    }
+
+    const {
+      username,
+      email: storedEmail,
+      password,
+    } = JSON.parse(pendingUserData);
+    if (email !== storedEmail) {
+      throw new AppError('Email mismatch', HttpStatus.BAD_REQUEST);
+    }
+
+    // Check again for existing user (race condition prevention)
+    const existingUser = await this._userRepository.findByEmail(email);
+    if (existingUser) {
+      throw new AppError(
+        ResponseMessages.USER_ALREADY_EXISTS,
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    // Create user in MongoDB
+    const passwordHash = await bcrypt.hash(password, 10);
     const user = await this._userRepository.create({
-      username: dto.username,
-      email: dto.email,
+      username,
+      email,
       passwordHash,
     });
+
+    // Clean up Redis
+    await redisClient.del(`otp:${email}`);
+    await redisClient.del(pendingUserKey);
 
     return user;
   }
@@ -42,8 +118,7 @@ export default class UserService implements IUserService {
     if (!user) {
       throw new AppError(
         ResponseMessages.INVALID_CREDENTIALS,
-        HttpStatus.UNAUTHORIZED,
-        true
+        HttpStatus.UNAUTHORIZED
       );
     }
 
@@ -51,8 +126,7 @@ export default class UserService implements IUserService {
     if (!isValid) {
       throw new AppError(
         ResponseMessages.INVALID_CREDENTIALS,
-        HttpStatus.UNAUTHORIZED,
-        true
+        HttpStatus.UNAUTHORIZED
       );
     }
 

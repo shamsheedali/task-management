@@ -7,6 +7,7 @@ import UserController from '../users/user.controller';
 import UserService from '../users/user.service';
 import UserRepository from '../users/user.repository';
 import { User } from '../users/user.model';
+import MailService from '../common/services/mail.service';
 
 const container = new Container();
 
@@ -27,6 +28,10 @@ container
 container
   .bind<TokenService>(TYPES.TokenService)
   .to(TokenService)
+  .inSingletonScope();
+container
+  .bind<MailService>(TYPES.MailService)
+  .to(MailService)
   .inSingletonScope();
 
 // Bind Repositories

@@ -17,4 +17,8 @@ export const env = cleanEnv(process.env, {
   JWT_SECRET: str(),
   REFRESH_JWT_SECRET: str(),
   REFRESH_JWT_MAX_AGE: num({ default: 7 * 24 * 60 * 60 * 1000 }),
+  REDIS_URL: str(),
+  REDIS_PASSWORD: str(),
+  EMAIL_USER: str(),
+  EMAIL_PASS: str(),
 });

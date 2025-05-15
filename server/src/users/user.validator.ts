@@ -29,5 +29,17 @@ export const loginSchema = z.object({
     .openapi({ description: 'User password' }),
 });
 
+export const verifyOtpSchema = z.object({
+  email: z
+    .string()
+    .email('Invalid email format')
+    .openapi({ description: 'User email address' }),
+  otp: z
+    .string()
+    .length(6, 'OTP must be 6 digits')
+    .openapi({ description: 'User OTP' }),
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
+export type VerifyOtpInput = z.infer<typeof verifyOtpSchema>;
