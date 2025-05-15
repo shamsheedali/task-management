@@ -3,17 +3,23 @@ import HttpStatus from '../common/constants/httpStatus';
 export class AppError extends Error {
   public readonly statusCode: number;
   public readonly isOperational: boolean;
+  public readonly errors?: any[];
 
-  constructor(message: string, statusCode: number, isOperational = true) {
+  constructor(
+    message: string,
+    statusCode: number,
+    isOperational = true,
+    errors?: any[]
+  ) {
     super(message);
     this.statusCode = statusCode;
     this.isOperational = isOperational;
+    this.errors = errors;
     Error.captureStackTrace(this, this.constructor);
   }
 
-  // Factory methods for common errors
-  static badRequest(message: string): AppError {
-    return new AppError(message, HttpStatus.BAD_REQUEST);
+  static badRequest(message: string, errors?: any[]): AppError {
+    return new AppError(message, HttpStatus.BAD_REQUEST, true, errors);
   }
 
   static unauthorized(message: string): AppError {

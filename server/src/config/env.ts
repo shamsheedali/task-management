@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-import { cleanEnv, port, str, url } from 'envalid';
+import { cleanEnv, port, str, url, num } from 'envalid';
 
 dotenv.config();
 
@@ -10,9 +10,11 @@ export const env = cleanEnv(process.env, {
     choices: ['development', 'production', 'test'],
     default: 'development',
   }),
-  JWT_SECRET: str(),
   LOG_LEVEL: str({
     choices: ['error', 'warn', 'info', 'debug'],
     default: 'info',
   }),
+  JWT_SECRET: str(),
+  REFRESH_JWT_SECRET: str(),
+  REFRESH_JWT_MAX_AGE: num({ default: 7 * 24 * 60 * 60 * 1000 }),
 });
