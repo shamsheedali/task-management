@@ -25,4 +25,8 @@ export default class UserRepository
   }): Promise<IUser> {
     return this.model.create(user);
   }
+
+  async findById(id: string): Promise<IUser | null> {
+    return this.model.findById(id).exec();
+  }
 }

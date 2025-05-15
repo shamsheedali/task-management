@@ -18,6 +18,7 @@
   "dependencies": {
     "@anatine/zod-openapi": "^2.2.8",
     "bcryptjs": "^3.0.2",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "envalid": "^8.0.0",
@@ -39,6 +40,7 @@
   "devDependencies": {
     "@eslint/js": "^9.26.0",
     "@types/bcryptjs": "^2.4.6",
+    "@types/cookie-parser": "^1.4.8",
     "@types/cors": "^2.8.18",
     "@types/express": "^5.0.1",
     "@types/express-rate-limit": "^5.1.3",

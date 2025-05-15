@@ -43,13 +43,10 @@ export default class UserService {
     };
 
     try {
-      // Store pending user data in Redis
       const pendingUserKey = `pending:user:${dto.email}`;
-      await redisClient.set(pendingUserKey, JSON.stringify(dto), { EX: 300 }); // 5 min expiry
-
-      // Send OTP
+      await redisClient.set(pendingUserKey, JSON.stringify(dto), { EX: 300 });
       await this._mailService.sendMail(mailOptions);
-      await redisClient.set(`otp:${dto.email}`, otp, { EX: 300 }); // 5 min expiry
+      await redisClient.set(`otp:${dto.email}`, otp, { EX: 300 });
       logger.info(`OTP sent to ${dto.email}: ${otp}`);
     } catch (error) {
       logger.error('Failed to initiate registration', {
@@ -63,7 +60,6 @@ export default class UserService {
   }
 
   async verifyAndRegister(email: string, otp: string): Promise<IUser> {
-    // Verify OTP
     const storedOtp = await redisClient.get(`otp:${email}`);
     if (!storedOtp) {
       throw new AppError('OTP not found or expired', HttpStatus.BAD_REQUEST);
@@ -73,7 +69,6 @@ export default class UserService {
       throw new AppError('Invalid OTP', HttpStatus.BAD_REQUEST);
     }
 
-    // Retrieve pending user data
     const pendingUserKey = `pending:user:${email}`;
     const pendingUserData = await redisClient.get(pendingUserKey);
     if (!pendingUserData) {
@@ -89,7 +84,6 @@ export default class UserService {
       throw new AppError('Email mismatch', HttpStatus.BAD_REQUEST);
     }
 
-    // Check again for existing user (race condition prevention)
     const existingUser = await this._userRepository.findByEmail(email);
     if (existingUser) {
       throw new AppError(
@@ -98,7 +92,6 @@ export default class UserService {
       );
     }
 
-    // Create user in MongoDB
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await this._userRepository.create({
       username,
@@ -106,7 +99,6 @@ export default class UserService {
       passwordHash,
     });
 
-    // Clean up Redis
     await redisClient.del(`otp:${email}`);
     await redisClient.del(pendingUserKey);
 
@@ -130,6 +122,14 @@ export default class UserService {
       );
     }
 
+    return user;
+  }
+
+  async findById(id: string): Promise<IUser> {
+    const user = await this._userRepository.findById(id);
+    if (!user) {
+      throw new AppError(ResponseMessages.NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
     return user;
   }
 }

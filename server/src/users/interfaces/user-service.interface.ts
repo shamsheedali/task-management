@@ -5,4 +5,5 @@ export interface IUserService {
   initiateRegistration(dto: RegisterInput): Promise<void>;
   verifyAndRegister(email: string, otp: string): Promise<IUser>;
   loginUser(dto: LoginInput): Promise<IUser>;
+  findById(id: string): Promise<IUser>;
 }

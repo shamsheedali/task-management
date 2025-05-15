@@ -7,4 +7,5 @@ export interface IUserRepository {
     email: string;
     passwordHash: string;
   }): Promise<IUser>;
+  findById(id: string): Promise<IUser | null>;
 }

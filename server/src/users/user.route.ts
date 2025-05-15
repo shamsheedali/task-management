@@ -5,6 +5,7 @@ import { registerSchema, loginSchema, verifyOtpSchema } from './user.validator';
 import container from '../config/inversify.config';
 import UserController from './user.controller';
 import TYPES from '../types/inversify.types';
+import { authMiddleware } from '../middleware/auth.middleware';
 
 const router = Router();
 const userController = container.get<UserController>(TYPES.UserController);
@@ -111,6 +112,61 @@ router.post(
   '/login',
   validate(loginSchema),
   asyncWrap(userController.login.bind(userController))
+);
+
+/**
+
+
+ * @swagger
+ * /api/users/me:
+ *   get:
+ *     summary: Get current user profile
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status: { type: string, example: 'success' }
+ *                 message: { type: string, example: 'User profile retrieved successfully' }
+ *                 data: { $ref: '#/components/schemas/UserResponse' }
+ *       401:
+ *         description: Unauthorized or invalid token
+ */
+router.get(
+  '/me',
+  authMiddleware,
+  asyncWrap(userController.getProfile.bind(userController))
+);
+
+/**
+ * @swagger
+ * /api/users/refresh:
+ *   post:
+ *     summary: Refresh access token using refresh token
+ *     tags: [Users]
+ *     responses:
+ *       200:
+ *         description: Token refreshed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status: { type: string, example: 'success' }
+ *                 message: { type: string, example: 'Token refreshed successfully' }
+ *                 accessToken: { type: string, example: 'jwt.token.here' }
+ *       401:
+ *         description: Unauthorized or invalid refresh token
+ */
+router.post(
+  '/refresh',
+  asyncWrap(userController.refreshToken.bind(userController))
 );
 
 export default router;
