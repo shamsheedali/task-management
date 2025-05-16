@@ -1,9 +1,12 @@
 import { injectable } from 'inversify';
 import { Model, Document } from 'mongoose';
+import { IBaseRepository } from '../interfaces/base-repository.interface';
 
 @injectable()
-export default abstract class BaseRepository<T extends Document> {
-  protected model: Model<T>;
+export default abstract class BaseRepository<T extends Document>
+  implements IBaseRepository<T>
+{
+  public model: Model<T>;
 
   constructor(model: Model<T>) {
     this.model = model;

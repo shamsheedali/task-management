@@ -1,12 +1,12 @@
 import { injectable } from 'inversify';
 import { Document } from 'mongoose';
-import BaseRepository from '../repositories/base.repository';
+import { IBaseRepository } from '../interfaces/base-repository.interface';
 
 @injectable()
 export default abstract class BaseService<T extends Document> {
-  protected repository: BaseRepository<T>;
+  protected repository: IBaseRepository<T>;
 
-  constructor(repository: BaseRepository<T>) {
+  constructor(repository: IBaseRepository<T>) {
     this.repository = repository;
   }
 

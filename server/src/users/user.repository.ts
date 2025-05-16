@@ -1,9 +1,10 @@
 import { inject, injectable } from 'inversify';
 import { Model } from 'mongoose';
 import TYPES from '../types/inversify.types';
-import { IUser } from './user.model';
-import BaseRepository from '../common/repositories/base.repository';
 import { IUserRepository } from './interfaces/user-repository.interface';
+import { IUser } from './user.model';
+import { UpdateQuery } from 'mongoose';
+import BaseRepository from '../common/repositories/base.repository';
 
 @injectable()
 export default class UserRepository
@@ -18,15 +19,7 @@ export default class UserRepository
     return this.model.findOne({ email }).exec();
   }
 
-  async create(user: {
-    username: string;
-    email: string;
-    passwordHash: string;
-  }): Promise<IUser> {
-    return this.model.create(user);
-  }
-
-  async findById(id: string): Promise<IUser | null> {
-    return this.model.findById(id).exec();
+  async update(id: string, data: UpdateQuery<IUser>): Promise<IUser | null> {
+    return this.model.findByIdAndUpdate(id, data, { new: true }).exec();
   }
 }
