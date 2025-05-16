@@ -1,23 +1,31 @@
 import { Container } from 'inversify';
 import TYPES from '../types/inversify.types';
-import TokenService from '../common/services/token.service';
 import { Model } from 'mongoose';
-import { IUser } from '../users/user.model';
+import { IUser, User } from '../users/user.model';
+import { ITaskList, TaskList } from '../tasks/models/taskList.model';
 import UserController from '../users/user.controller';
+import TaskListController from '../tasks/controllers/taskList.controller';
 import UserService from '../users/user.service';
-import UserRepository from '../users/user.repository';
-import { User } from '../users/user.model';
+import TokenService from '../common/services/token.service';
 import MailService from '../common/services/mail.service';
+import TaskListService from '../tasks/services/taskList.service';
+import UserRepository from '../users/user.repository';
+import TaskListRepository from '../tasks/repositories/taskList.repository';
 
 const container = new Container();
 
 // Bind Models
 container.bind<Model<IUser>>(TYPES.UserModel).toConstantValue(User);
+container.bind<Model<ITaskList>>(TYPES.TaskListModel).toConstantValue(TaskList);
 
 // Bind Controllers
 container
   .bind<UserController>(TYPES.UserController)
   .to(UserController)
+  .inSingletonScope();
+container
+  .bind<TaskListController>(TYPES.TaskListController)
+  .to(TaskListController)
   .inSingletonScope();
 
 // Bind Services
@@ -33,11 +41,19 @@ container
   .bind<MailService>(TYPES.MailService)
   .to(MailService)
   .inSingletonScope();
+container
+  .bind<TaskListService>(TYPES.TaskListService)
+  .to(TaskListService)
+  .inSingletonScope();
 
 // Bind Repositories
 container
   .bind<UserRepository>(TYPES.UserRepository)
   .to(UserRepository)
+  .inSingletonScope();
+container
+  .bind<TaskListRepository>(TYPES.TaskListRepository)
+  .to(TaskListRepository)
   .inSingletonScope();
 
 export default container;

@@ -11,17 +11,23 @@ import ResponseMessages from '../common/constants/response';
 import HttpStatus from '../common/constants/httpStatus';
 import { env } from '../config/env';
 import logger from '../utils/logger';
+import BaseService from '../common/services/base.service';
+import { IUserService } from './interfaces/user-service.interface';
 
 @injectable()
-export default class UserService {
+export default class UserService
+  extends BaseService<IUser>
+  implements IUserService
+{
   private _userRepository: IUserRepository;
   private _mailService: IMailService;
 
   constructor(
-    @inject(TYPES.UserRepository) repository: IUserRepository,
+    @inject(TYPES.UserRepository) userRepository: IUserRepository,
     @inject(TYPES.MailService) mailService: IMailService
   ) {
-    this._userRepository = repository;
+    super(userRepository);
+    this._userRepository = userRepository;
     this._mailService = mailService;
   }
 
@@ -126,7 +132,7 @@ export default class UserService {
   }
 
   async findById(id: string): Promise<IUser> {
-    const user = await this._userRepository.findById(id);
+    const user = await super.findById(id);
     if (!user) {
       throw new AppError(ResponseMessages.NOT_FOUND, HttpStatus.NOT_FOUND);
     }

@@ -8,8 +8,9 @@ import { errorMiddleware } from './middleware/error.middleware';
 import helmet from 'helmet';
 import { limiter } from './middleware/rateLimit.middleware';
 import { swaggerServe, swaggerSetup } from './config/swagger';
-import userRoutes from './users/user.route';
 import cookieParser from 'cookie-parser';
+import userRoutes from './users/user.route';
+import taskListRoutes from './tasks/routes/taskList.route';
 
 const app: Express = express();
 
@@ -28,6 +29,7 @@ app.use(morgan('combined', { stream: morganStream }));
 
 // Routes
 app.use('/api/users', userRoutes);
+app.use('/api/tasklist', taskListRoutes);
 
 // Swagger Documentation
 app.use('/api-docs', swaggerServe, swaggerSetup);

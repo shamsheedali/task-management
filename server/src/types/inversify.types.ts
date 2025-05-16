@@ -1,14 +1,18 @@
 const TYPES = {
   //Models
   UserModel: Symbol.for('UserModel'),
-  //Repositories
-  UserRepository: Symbol.for('UserRepository'),
+  TaskListModel: Symbol.for('TaskListModel'),
+  //Controllers
+  UserController: Symbol.for('UserController'),
+  TaskListController: Symbol.for('TaskListController'),
   //Services
   UserService: Symbol.for('UserService'),
   TokenService: Symbol.for('TokenService'),
   MailService: Symbol.for('MailService'),
-  //Controllers
-  UserController: Symbol.for('UserController'),
+  TaskListService: Symbol.for('TaskListService'),
+  //Repositories
+  UserRepository: Symbol.for('UserRepository'),
+  TaskListRepository: Symbol.for('TaskListRepository'),
 };
 
 export default TYPES;
