@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify';
+import { FilterQuery, Model } from 'mongoose';
 import TYPES from '../../types/inversify.types';
-import { Model } from 'mongoose';
 import { ITaskListRepository } from '../interfaces/taskList-repository.interface';
 import { ITaskList } from '../models/taskList.model';
 import BaseRepository from '../../common/repositories/base.repository';
@@ -12,5 +12,9 @@ export default class TaskListRepository
 {
   constructor(@inject(TYPES.TaskListModel) taskListModel: Model<ITaskList>) {
     super(taskListModel);
+  }
+
+  async findOne(query: FilterQuery<ITaskList>): Promise<ITaskList | null> {
+    return await this.model.findOne(query).exec();
   }
 }

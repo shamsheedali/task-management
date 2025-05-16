@@ -9,9 +9,11 @@ export interface ITaskList extends Document {
 const taskListSchema = new Schema<ITaskList>(
   {
     title: { type: String, required: true },
-    userId: { type: String, required: true, unique: true },
+    userId: { type: String, required: true },
   },
   { timestamps: true }
 );
+
+taskListSchema.index({ userId: 1, title: 1 }, { unique: true });
 
 export const TaskList = model<ITaskList>('TaskList', taskListSchema);

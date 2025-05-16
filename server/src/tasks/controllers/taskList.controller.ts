@@ -73,4 +73,21 @@ export default class TaskListController {
       },
     });
   }
+
+  async deleteTaskList(req: AuthRequest, res: Response) {
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new AppError(
+        ResponseMessages.UNAUTHORIZED,
+        HttpStatus.UNAUTHORIZED
+      );
+    }
+
+    const taskListId = req.params.id;
+    await this._taskListService.deleteTaskList(taskListId, userId);
+    res.status(HttpStatus.OK).json({
+      status: 'success',
+      message: 'Task list deleted successfully',
+    });
+  }
 }

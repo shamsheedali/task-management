@@ -59,9 +59,15 @@ router.post(
 );
 
 router.patch(
-  '/',
+  '/:id',
   authMiddleware,
   validate(editTaskListSchema),
   asyncWrap(taskListController.editTaskList.bind(taskListController))
+);
+
+router.delete(
+  '/:id',
+  authMiddleware,
+  asyncWrap(taskListController.deleteTaskList.bind(taskListController))
 );
 export default router;

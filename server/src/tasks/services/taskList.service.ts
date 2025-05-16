@@ -33,6 +33,18 @@ export default class TaskListService
       throw new AppError(ResponseMessages.NOT_FOUND, HttpStatus.NOT_FOUND);
     }
 
+    // Check for existing task list with same title and userId
+    const existingTaskList = await this._taskListRepository.findOne({
+      title,
+      userId,
+    });
+    if (existingTaskList) {
+      throw new AppError(
+        `Task list with title '${title}' already exists for this user`,
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
     const taskList = await super.create({ title, userId });
     await this._userRepository.update(userId, {
       $push: { taskLists: taskList._id },
@@ -58,6 +70,19 @@ export default class TaskListService
       );
     }
 
+    // Check if another task list with the new title exists for this user
+    const existingTaskList = await this._taskListRepository.findOne({
+      title,
+      userId,
+      _id: { $ne: id },
+    });
+    if (existingTaskList) {
+      throw new AppError(
+        `Task list with title '${title}' already exists for this user`,
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
     const updatedTaskList = await super.update(id, { title });
     if (!updatedTaskList) {
       throw new AppError(ResponseMessages.NOT_FOUND, HttpStatus.NOT_FOUND);
@@ -65,5 +90,26 @@ export default class TaskListService
 
     logger.info(`Task list updated: ${id} for user: ${userId}`);
     return updatedTaskList;
+  }
+
+  async deleteTaskList(id: string, userId: string) {
+    const taskList = await super.findById(id);
+
+    if (!taskList) {
+      throw new AppError(ResponseMessages.NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+    if (taskList.userId.toString() !== userId) {
+      throw new AppError(
+        ResponseMessages.UNAUTHORIZED,
+        HttpStatus.UNAUTHORIZED
+      );
+    }
+
+    const deletedTaskList = await super.delete(id);
+    if (!deletedTaskList) {
+      throw new AppError(ResponseMessages.NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+
+    logger.info(`Task list deleted: ${id} for user: ${userId}`);
   }
 }
