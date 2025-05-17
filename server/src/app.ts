@@ -11,6 +11,7 @@ import { swaggerServe, swaggerSetup } from './config/swagger';
 import cookieParser from 'cookie-parser';
 import userRoutes from './users/user.route';
 import taskListRoutes from './tasks/routes/taskList.route';
+import taskRoutes from './tasks/routes/task.routes';
 
 const app: Express = express();
 
@@ -30,6 +31,7 @@ app.use(morgan('combined', { stream: morganStream }));
 // Routes
 app.use('/api/users', userRoutes);
 app.use('/api/tasklist', taskListRoutes);
+app.use('/api/tasklist', taskRoutes);
 
 // Swagger Documentation
 app.use('/api-docs', swaggerServe, swaggerSetup);
