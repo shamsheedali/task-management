@@ -33,7 +33,11 @@ export default class TaskListController {
     res.status(HttpStatus.OK).json({
       status: 'success',
       message: 'Task lists retrieved successfully',
-      data: taskList,
+      data: taskList.map(list => ({
+        id: list._id,
+        title: list.title,
+        userId: list.userId,
+      })),
     });
   }
 

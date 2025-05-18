@@ -1,127 +1,198 @@
-import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import React, { useState, useEffect, useRef } from "react";
 import Card from "./Card";
 import { Plus } from "lucide-react";
 import taskService from "../services/taskService";
+import useTaskListStore from "../store/taskListStore";
 import type { ITask, ITaskList, ApiResponse } from "../types";
 
 type TaskListViewProps = {
   list: ITaskList | null;
-  onAddTask: (
-    title: string,
-    description?: string,
-    parentTaskId?: string
-  ) => void;
-  onToggleTask: (taskId: string, status: ITask["status"]) => void;
-  onDeleteTask: (taskId: string) => void;
-  onStarTask: (taskId: string) => void;
   starredTasks: string[];
 };
 
-const TaskListView: React.FC<TaskListViewProps> = ({
-  list,
-  onAddTask,
-  onToggleTask,
-  onDeleteTask,
-  onStarTask,
-  starredTasks,
-}) => {
-  const [showInput, setShowInput] = useState(false);
+const TaskListView: React.FC<TaskListViewProps> = ({ list, starredTasks }) => {
+  const { taskLists, showAllTasks, addTask } = useTaskListStore();
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDesc, setTaskDesc] = useState("");
+  const [taskStatus, setTaskStatus] = useState<"todo" | "in-progress" | "done">(
+    "todo"
+  );
+  const [taskPriority, setTaskPriority] = useState<"low" | "medium" | "high">(
+    "medium"
+  );
+  const [taskDueDate, setTaskDueDate] = useState<string>("");
+  const [selectedTaskListId, setSelectedTaskListId] = useState<string>("");
+  const [tasks, setTasks] = useState<ITask[]>([]);
+  const modalRef = useRef<HTMLDialogElement>(null);
 
-  const { data: tasksResponse, isLoading } = useQuery<
-    ApiResponse<ITask[]>,
-    Error
-  >({
-    queryKey: ["tasks", list?.id],
-    queryFn: () => taskService.getTasks(list!.id),
-    enabled: !!list?.id,
-  });
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        if (showAllTasks) {
+          const allTasks = await Promise.all(
+            taskLists.map(async (list) => {
+              const res: ApiResponse<ITask[]> = await taskService.getTasks(
+                list.id
+              );
+              return res.data;
+            })
+          );
+          setTasks(allTasks.flat());
+        } else if (list?.id) {
+          const res: ApiResponse<ITask[]> = await taskService.getTasks(list.id);
+          setTasks(res.data);
+        } else {
+          setTasks([]);
+        }
+      } catch (err: unknown) {
+        console.error("Failed to fetch tasks:", err);
+        setTasks([]);
+      }
+    };
 
-  const handleAddTask = () => {
-    if (taskTitle.trim()) {
-      onAddTask(taskTitle.trim(), taskDesc.trim() || undefined);
+    fetchTasks();
+  }, [taskLists, showAllTasks, list]);
+
+  const handleCreateTask = async () => {
+    if (!taskTitle.trim() || !selectedTaskListId) return;
+
+    try {
+      const taskData: Partial<ITask> = {
+        title: taskTitle,
+        description: taskDesc || undefined,
+        status: taskStatus,
+        priority: taskPriority,
+        dueDate: taskDueDate ? new Date(taskDueDate) : undefined,
+      };
+
+      const res: ApiResponse<ITask> = await taskService.createTask(
+        selectedTaskListId,
+        taskData
+      );
+      addTask(selectedTaskListId, res.data);
+      setTasks((prev) => [...prev, res.data]);
+
       setTaskTitle("");
       setTaskDesc("");
-      setShowInput(false);
+      setTaskStatus("todo");
+      setTaskPriority("medium");
+      setTaskDueDate("");
+      setSelectedTaskListId("");
+      modalRef.current?.close();
+    } catch (err: unknown) {
+      console.error("Failed to create task:", err);
     }
   };
 
-  if (!list) {
-    return <div className="text-center text-gray-400">No List Selected</div>;
-  }
-
-  const topLevelTasks = (tasksResponse?.data || []).filter(
-    (task: ITask) => !task.parentTaskId
-  );
-
-  console.log("first", list);
   return (
     <div className="max-w-2xl mx-auto relative">
       <div className="flex items-center justify-between mb-8">
-        <h2 className="text-3xl font-extrabold tracking-tight">{list.title}</h2>
+        <h2 className="text-3xl font-extrabold tracking-tight">
+          {showAllTasks ? "All Tasks" : list?.title || "No List Selected"}
+        </h2>
       </div>
-      {showInput && (
-        <div className="mb-4 bg-card dark:bg-neutral-800 p-6 rounded-2xl shadow-xl flex flex-col gap-2 animate-fade-in">
+      <dialog ref={modalRef} className="modal">
+        <div className="modal-box bg-card dark:bg-neutral-800 p-6 rounded-2xl shadow-xl flex flex-col gap-2 animate-fade-in">
+          <h3 className="font-bold text-lg">Create Task</h3>
+          <select
+            className="select select-bordered w-full"
+            value={selectedTaskListId}
+            onChange={(e) => setSelectedTaskListId(e.target.value)}
+            required
+          >
+            <option value="" disabled>
+              Select Task List
+            </option>
+            {taskLists.map((list) => (
+              <option key={list.id} value={list.id}>
+                {list.title}
+              </option>
+            ))}
+          </select>
           <input
             type="text"
             className="input input-bordered w-full text-lg"
             placeholder="Task title"
             value={taskTitle}
             onChange={(e) => setTaskTitle(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleAddTask()}
             autoFocus
+            required
           />
           <textarea
             className="textarea textarea-bordered w-full text-base"
-            placeholder="Description (optional)"
+            placeholder="Description"
             value={taskDesc}
             onChange={(e) => setTaskDesc(e.target.value)}
             rows={2}
           />
-          <div className="flex gap-2">
-            <button className="btn btn-primary btn-sm" onClick={handleAddTask}>
+          <select
+            className="select select-bordered w-full"
+            value={taskStatus}
+            onChange={(e) =>
+              setTaskStatus(e.target.value as "todo" | "in-progress" | "done")
+            }
+          >
+            <option value="todo">To Do</option>
+            <option value="in-progress">In Progress</option>
+            <option value="done">Done</option>
+          </select>
+          <select
+            className="select select-bordered w-full"
+            value={taskPriority}
+            onChange={(e) =>
+              setTaskPriority(e.target.value as "low" | "medium" | "high")
+            }
+          >
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
+          <input
+            type="date"
+            className="input input-bordered w-full text-base"
+            value={taskDueDate}
+            onChange={(e) => setTaskDueDate(e.target.value)}
+          />
+          <div className="flex gap-2 mt-2">
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={handleCreateTask}
+            >
               Add
             </button>
             <button
               className="btn btn-ghost btn-sm"
-              onClick={() => setShowInput(false)}
+              onClick={() => modalRef.current?.close()}
             >
               Cancel
             </button>
           </div>
         </div>
-      )}
+        <form method="dialog" className="modal-backdrop">
+          <button>close</button>
+        </form>
+      </dialog>
       <div className="space-y-5 pb-24">
-        {isLoading ? (
-          <div className="text-center text-gray-400">Loading tasks...</div>
-        ) : topLevelTasks.length === 0 ? (
+        {tasks.length === 0 ? (
           <div className="text-center text-gray-400">No tasks found.</div>
         ) : (
-          topLevelTasks.map((task: ITask) => (
+          tasks.map((task: ITask) => (
             <Card
               key={task.id}
               task={task}
-              allTasks={tasksResponse?.data || []}
-              onToggle={() => onToggleTask(task.id, task.status)}
-              onDelete={() => onDeleteTask(task.id)}
-              onStar={() => onStarTask(task.id)}
-              onCreateSubtask={(title) => onAddTask(title, undefined, task.id)}
+              allTasks={tasks}
               starred={starredTasks.includes(task.id)}
             />
           ))
         )}
       </div>
-      {!showInput && (
-        <button
-          className="btn btn-primary btn-circle fixed bottom-10 right-10 md:bottom-16 md:right-24 shadow-xl animate-bounce"
-          onClick={() => setShowInput(true)}
-          aria-label="Add Task"
-        >
-          <Plus size={28} />
-        </button>
-      )}
+      <button
+        className="btn btn-primary btn-circle fixed bottom-10 right-10 md:bottom-16 md:right-24 shadow-xl animate-bounce"
+        onClick={() => modalRef.current?.showModal()}
+        aria-label="Add Task"
+      >
+        <Plus size={28} />
+      </button>
     </div>
   );
 };

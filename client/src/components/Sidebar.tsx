@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import React, { useEffect, useState } from "react";
 import {
   ChartBar,
   CircleCheckBig,
@@ -10,73 +9,76 @@ import {
   Trash2,
 } from "lucide-react";
 import taskListService from "../services/taskListService";
-import useTaskStore from "../store/taskStore";
+import useTaskListStore from "../store/taskListStore";
 import type { ITaskList, ApiResponse } from "../types";
 
-type SidebarProps = {
-  taskLists: ITaskList[];
-  selectedListId: string | null;
-  onSelectList: (id: string) => void;
-  onAddList: (taskList: ITaskList) => void;
-  onUpdateList: (id: string, title: string) => void;
-  onDeleteList: (id: string) => void;
-};
-
-const Sidebar: React.FC<SidebarProps> = ({
-  taskLists,
-  selectedListId,
-  onSelectList,
-  onAddList,
-  onUpdateList,
-  onDeleteList,
-}) => {
+const Sidebar: React.FC = () => {
+  const {
+    taskLists,
+    selectedListId,
+    showAllTasks,
+    setTaskLists,
+    setSelectedListId,
+    setShowAllTasks,
+    updateTaskList,
+    deleteTaskList,
+  } = useTaskListStore();
   const [showInput, setShowInput] = useState(false);
   const [listName, setListName] = useState("");
   const [editingListId, setEditingListId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
-
-  const { data: taskListsResponse, isLoading } = useQuery<
-    ApiResponse<ITaskList[]>,
-    Error
-  >({
-    queryKey: ["taskLists"],
-    queryFn: taskListService.getTaskLists,
-  });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (taskListsResponse?.data) {
-      useTaskStore.getState().setTaskLists(taskListsResponse.data);
-    }
-  }, [taskListsResponse]);
+    const fetchTaskLists = async () => {
+      try {
+        const res: ApiResponse<ITaskList[]> =
+          await taskListService.getTaskLists();
+        setTaskLists(res.data);
+      } catch (err: unknown) {
+        console.error("Failed to fetch task lists:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const handleAddList = async () => {
+    fetchTaskLists();
+  }, [setTaskLists]);
+
+  const handleCreateTaskList = async () => {
     if (listName.trim()) {
       try {
-        const response = await taskListService.createTaskList(listName.trim());
-        console.log("create tasklist response", response);
-        onAddList(response.data);
+        const res: ApiResponse<ITaskList> =
+          await taskListService.createTaskList(listName);
+        setTaskLists([...taskLists, res.data]);
         setListName("");
         setShowInput(false);
-      } catch (error) {
-        console.error("Failed to add task list:", error);
+      } catch (err: unknown) {
+        console.error("Failed to create task list:", err);
       }
     }
   };
 
-  const handleEditList = (id: string, currentName: string) => {
-    setEditingListId(id);
-    setEditName(currentName);
-  };
-
-  const handleUpdateList = async (id: string) => {
+  const handleUpdateTaskList = async (listId: string) => {
     if (editName.trim()) {
       try {
-        await onUpdateList(id, editName.trim());
+        const res: ApiResponse<ITaskList> =
+          await taskListService.updateTaskList(listId, editName);
+        updateTaskList(listId, res.data);
         setEditingListId(null);
         setEditName("");
-      } catch (error) {
-        console.error("Failed to update task list:", error);
+      } catch (err: unknown) {
+        console.error("Failed to update task list:", err);
       }
+    }
+  };
+
+  const handleDeleteTaskList = async (listId: string) => {
+    try {
+      await taskListService.deleteTaskList(listId);
+      deleteTaskList(listId);
+    } catch (err: unknown) {
+      console.error("Failed to delete task list:", err);
     }
   };
 
@@ -91,7 +93,14 @@ const Sidebar: React.FC<SidebarProps> = ({
       </button>
       <div>
         <div className="space-y-2 mb-6">
-          <button className="flex items-center gap-2 text-text-secondary hover:text-primary-500 transition font-medium">
+          <button
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg transition font-medium ${
+              showAllTasks
+                ? "bg-primary-100 text-primary-700 shadow"
+                : "text-text-secondary hover:bg-primary-50 hover:text-primary-500"
+            }`}
+            onClick={() => setShowAllTasks(true)}
+          >
             <CircleCheckBig />
             All tasks
           </button>
@@ -104,21 +113,21 @@ const Sidebar: React.FC<SidebarProps> = ({
           My Lists
         </div>
         <div className="flex flex-col gap-1">
-          {isLoading ? (
-            <div className="text-center text-gray-400">Loading lists...</div>
+          {loading ? (
+            <h1>Loading...</h1>
           ) : taskLists.length === 0 ? (
             <div className="text-center text-gray-400">No lists found.</div>
           ) : (
-            taskLists.map((list) => (
+            taskLists.map((list: ITaskList) => (
               <div key={list.id} className="flex items-center gap-2 group">
                 {editingListId === list.id ? (
                   <input
                     type="text"
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
-                    onBlur={() => handleUpdateList(list.id)}
+                    onBlur={() => handleUpdateTaskList(list.id)}
                     onKeyDown={(e) =>
-                      e.key === "Enter" && handleUpdateList(list.id)
+                      e.key === "Enter" && handleUpdateTaskList(list.id)
                     }
                     className="flex-1 p-2 border rounded"
                     autoFocus
@@ -130,21 +139,24 @@ const Sidebar: React.FC<SidebarProps> = ({
                         ? "bg-primary-100 text-primary-700 shadow"
                         : "text-text-secondary hover:bg-primary-50 hover:text-primary-700"
                     }`}
-                    onClick={() => onSelectList(list.id)}
+                    onClick={() => setSelectedListId(list.id)}
                   >
                     <List />
                     {list.title}
                   </button>
                 )}
                 <button
-                  onClick={() => handleEditList(list.id, list.title)}
+                  onClick={() => {
+                    setEditingListId(list.id);
+                    setEditName(list.title);
+                  }}
                   className="text-blue-500 hover:text-blue-700"
                 >
                   <Edit size={18} />
                 </button>
                 <button
-                  onClick={() => onDeleteList(list.id)}
                   className="text-red-500 hover:text-red-700"
+                  onClick={() => handleDeleteTaskList(list.id)}
                 >
                   <Trash2 size={18} />
                 </button>
@@ -161,11 +173,13 @@ const Sidebar: React.FC<SidebarProps> = ({
             placeholder="List name"
             value={listName}
             onChange={(e) => setListName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleAddList()}
             autoFocus
           />
           <div className="flex gap-2">
-            <button className="btn btn-primary btn-sm" onClick={handleAddList}>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={handleCreateTaskList}
+            >
               Add
             </button>
             <button

@@ -6,41 +6,19 @@ interface TaskCardProps {
   task: ITask;
   allTasks: ITask[];
   starred: boolean;
-  onToggle: () => void;
-  onDelete: () => void;
-  onStar: () => void;
-  onCreateSubtask: (subtaskTitle: string) => void;
 }
 
-const Card: React.FC<TaskCardProps> = ({
-  task,
-  allTasks,
-  starred,
-  onToggle,
-  onDelete,
-  onStar,
-  onCreateSubtask,
-}) => {
+const Card: React.FC<TaskCardProps> = ({ task, allTasks, starred }) => {
   const [showSubtaskInput, setShowSubtaskInput] = useState(false);
   const [subtaskTitle, setSubtaskTitle] = useState("");
 
-  const handleSubtask = () => {
-    if (subtaskTitle.trim()) {
-      onCreateSubtask(subtaskTitle.trim());
-      setSubtaskTitle("");
-      setShowSubtaskInput(false);
-    }
-  };
-
   const subtasks = allTasks.filter((t) => t.parentTaskId === task.id);
-
   const completed = task.status === "done";
 
   return (
     <div className="bg-card dark:bg-neutral-800 rounded-xl shadow-lg flex flex-col gap-2 w-full p-6 border border-gray-200 dark:border-neutral-700 group transition hover:shadow-2xl">
       <div className="flex items-start gap-4">
         <button
-          onClick={onToggle}
           className={`h-7 w-7 flex items-center justify-center border-2 rounded-full transition-all mt-1 ${
             completed
               ? "border-primary-500 bg-primary-500"
@@ -80,14 +58,12 @@ const Card: React.FC<TaskCardProps> = ({
         </div>
 
         <button
-          onClick={onStar}
           className="ml-2 text-yellow-400 hover:text-yellow-500 transition-colors"
           aria-label={starred ? "Unstar task" : "Star task"}
         >
           <Star size={22} fill={starred ? "currentColor" : "none"} />
         </button>
         <button
-          onClick={onDelete}
           className="ml-2 text-danger-500 hover:bg-danger-100 rounded-full p-1 transition"
           aria-label="Delete task"
         >
@@ -112,12 +88,9 @@ const Card: React.FC<TaskCardProps> = ({
               placeholder="Subtask title"
               value={subtaskTitle}
               onChange={(e) => setSubtaskTitle(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSubtask()}
               autoFocus
             />
-            <button className="btn btn-xs btn-primary" onClick={handleSubtask}>
-              Add
-            </button>
+            <button className="btn btn-xs btn-primary">Add</button>
           </div>
         )}
       </div>

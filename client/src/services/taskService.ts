@@ -1,5 +1,5 @@
-import api from '../api';
-import type { ApiResponse, ITask } from '../types';
+import api from "../api";
+import type { ApiResponse, ITask } from "../types";
 
 const taskService = {
   getTasks: async (taskListId: string): Promise<ApiResponse<ITask[]>> => {
@@ -20,7 +20,10 @@ const taskService = {
     taskId: string,
     task: Partial<ITask>
   ): Promise<ApiResponse<ITask>> => {
-    const response = await api.patch(`/tasklist/${taskListId}/tasks/${taskId}`, task);
+    const response = await api.patch(
+      `/tasklist/${taskListId}/tasks/${taskId}`,
+      task
+    );
     return response.data;
   },
 
@@ -28,7 +31,9 @@ const taskService = {
     taskListId: string,
     taskId: string
   ): Promise<ApiResponse<null>> => {
-    const response = await api.delete(`/tasklist/${taskListId}/tasks/${taskId}`);
+    const response = await api.delete(
+      `/tasklist/${taskListId}/tasks/${taskId}`
+    );
     return response.data;
   },
 };

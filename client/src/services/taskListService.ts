@@ -1,14 +1,14 @@
-import api from '../api';
-import type { ApiResponse, ITaskList } from '../types';
+import api from "../api";
+import type { ApiResponse, ITaskList } from "../types";
 
 const taskListService = {
   getTaskLists: async (): Promise<ApiResponse<ITaskList[]>> => {
-    const response = await api.get('/tasklist');
+    const response = await api.get("/tasklist");
     return response.data;
   },
 
   createTaskList: async (title: string): Promise<ApiResponse<ITaskList>> => {
-    const response = await api.post('/tasklist', { title });
+    const response = await api.post("/tasklist", { title });
     return response.data;
   },
 
