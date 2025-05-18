@@ -1,28 +1,25 @@
 import React, { useState } from "react";
 import { Trash2, CheckCircle, Star, PlusCircle } from "lucide-react";
+import type { ITask } from "../types";
 
 interface TaskCardProps {
-  title: string;
-  description?: string;
-  completed: boolean;
-  starred?: boolean;
+  task: ITask;
+  allTasks: ITask[];
+  starred: boolean;
   onToggle: () => void;
   onDelete: () => void;
   onStar: () => void;
   onCreateSubtask: (subtaskTitle: string) => void;
-  subtasks?: { id: number; title: string; completed: boolean }[];
 }
 
 const Card: React.FC<TaskCardProps> = ({
-  title,
-  description,
-  completed,
-  starred = false,
+  task,
+  allTasks,
+  starred,
   onToggle,
   onDelete,
   onStar,
   onCreateSubtask,
-  subtasks = [],
 }) => {
   const [showSubtaskInput, setShowSubtaskInput] = useState(false);
   const [subtaskTitle, setSubtaskTitle] = useState("");
@@ -35,10 +32,13 @@ const Card: React.FC<TaskCardProps> = ({
     }
   };
 
+  const subtasks = allTasks.filter((t) => t.parentTaskId === task.id);
+
+  const completed = task.status === "done";
+
   return (
-    <div className="bg-neutral-100 dark:bg-neutral-800 rounded-xl shadow-lg flex flex-col gap-2 w-full p-6 border border-gray-200 dark:border-neutral-700 group transition hover:shadow-2xl">
+    <div className="bg-card dark:bg-neutral-800 rounded-xl shadow-lg flex flex-col gap-2 w-full p-6 border border-gray-200 dark:border-neutral-700 group transition hover:shadow-2xl">
       <div className="flex items-start gap-4">
-        {/* Complete/Incomplete */}
         <button
           onClick={onToggle}
           className={`h-7 w-7 flex items-center justify-center border-2 rounded-full transition-all mt-1 ${
@@ -55,27 +55,30 @@ const Card: React.FC<TaskCardProps> = ({
           )}
         </button>
 
-        {/* Task Content */}
         <div className="flex-1 min-w-0">
           <div
             className={`font-semibold text-lg truncate ${
               completed ? "line-through text-gray-400" : "text-text-primary"
             }`}
           >
-            {title}
+            {task.title}
           </div>
-          {description && (
+          {task.description && (
             <div
               className={`text-base mt-1 ${
                 completed ? "line-through text-gray-300" : "text-text-secondary"
               }`}
             >
-              {description}
+              {task.description}
+            </div>
+          )}
+          {task.dueDate && (
+            <div className="text-sm text-gray-500 mt-1">
+              Due: {new Date(task.dueDate).toLocaleDateString()}
             </div>
           )}
         </div>
 
-        {/* Star Button */}
         <button
           onClick={onStar}
           className="ml-2 text-yellow-400 hover:text-yellow-500 transition-colors"
@@ -83,7 +86,6 @@ const Card: React.FC<TaskCardProps> = ({
         >
           <Star size={22} fill={starred ? "currentColor" : "none"} />
         </button>
-        {/* Delete Button */}
         <button
           onClick={onDelete}
           className="ml-2 text-danger-500 hover:bg-danger-100 rounded-full p-1 transition"
@@ -93,7 +95,6 @@ const Card: React.FC<TaskCardProps> = ({
         </button>
       </div>
 
-      {/* Subtask Button & Input */}
       <div className="flex items-center gap-2 mt-1">
         <button
           onClick={() => setShowSubtaskInput((v) => !v)}
@@ -120,19 +121,20 @@ const Card: React.FC<TaskCardProps> = ({
           </div>
         )}
       </div>
-      {/* Subtasks List */}
-      {subtasks && subtasks.length > 0 && (
+      {subtasks.length > 0 && (
         <ul className="ml-8 mt-2 space-y-1">
           {subtasks.map((sub) => (
             <li
               key={sub.id}
               className={`text-sm flex items-center gap-2 ${
-                sub.completed ? "line-through text-gray-400" : ""
+                sub.status === "done" ? "line-through text-gray-400" : ""
               }`}
             >
               <CheckCircle
                 size={16}
-                className={sub.completed ? "text-primary-500" : "text-gray-300"}
+                className={
+                  sub.status === "done" ? "text-primary-500" : "text-gray-300"
+                }
               />
               {sub.title}
             </li>

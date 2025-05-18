@@ -17,4 +17,8 @@ export default class TaskListRepository
   async findOne(query: FilterQuery<ITaskList>): Promise<ITaskList | null> {
     return await this.model.findOne(query).exec();
   }
+
+  async find(query: FilterQuery<ITaskList>): Promise<ITaskList[]> {
+    return await this.model.find(query).exec();
+  }
 }

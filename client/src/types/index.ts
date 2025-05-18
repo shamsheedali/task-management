@@ -3,14 +3,15 @@ export interface ITaskList {
   title: string;
   userId: string;
   createdAt: string;
+  tasks?: ITask[];
 }
 
 export interface ITask {
   id: string;
   title: string;
   description?: string;
-  status: 'todo' | 'in-progress' | 'done';
-  priority: 'low' | 'medium' | 'high';
+  status: "todo" | "in-progress" | "done";
+  priority: "low" | "medium" | "high";
   dueDate?: string;
   taskListId: string;
   userId: string;
@@ -22,7 +23,7 @@ export interface ITask {
 }
 
 export interface ApiResponse<T> {
-  status: 'success' | 'error';
+  status: "success" | "error";
   message: string;
   data: T;
 }

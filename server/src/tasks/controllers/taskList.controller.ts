@@ -16,6 +16,28 @@ export default class TaskListController {
   }
 
   /**
+   * Get all task lists for the authenticated user.
+   * @param req - Request with authenticated user ID.
+   * @param res - Response with all user task list data.
+   */
+  async getTaskList(req: AuthRequest, res: Response) {
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new AppError(
+        ResponseMessages.UNAUTHORIZED,
+        HttpStatus.UNAUTHORIZED
+      );
+    }
+
+    const taskList = await this._taskListService.getTaskList(userId);
+    res.status(HttpStatus.OK).json({
+      status: 'success',
+      message: 'Task lists retrieved successfully',
+      data: taskList,
+    });
+  }
+
+  /**
    * Creates a new task list for the authenticated user.
    * @param req - Request with title and authenticated user ID.
    * @param res - Response with created task list data.

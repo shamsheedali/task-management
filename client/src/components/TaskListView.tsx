@@ -1,17 +1,21 @@
 import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import Card from "./Card";
 import { Plus } from "lucide-react";
-import type { Task } from "../App";
+import taskService from "../services/taskService";
+import type { ITask, ITaskList, ApiResponse } from "../types";
 
 type TaskListViewProps = {
-  list?: {
-    id: number;
-    name: string;
-    tasks: Task[];
-  };
-  onAddTask: (title: string, description?: string) => void;
-  onToggleTask: (taskId: number) => void;
-  onDeleteTask: (taskId: number) => void;
+  list: ITaskList | null;
+  onAddTask: (
+    title: string,
+    description?: string,
+    parentTaskId?: string
+  ) => void;
+  onToggleTask: (taskId: string, status: ITask["status"]) => void;
+  onDeleteTask: (taskId: string) => void;
+  onStarTask: (taskId: string) => void;
+  starredTasks: string[];
 };
 
 const TaskListView: React.FC<TaskListViewProps> = ({
@@ -19,10 +23,21 @@ const TaskListView: React.FC<TaskListViewProps> = ({
   onAddTask,
   onToggleTask,
   onDeleteTask,
+  onStarTask,
+  starredTasks,
 }) => {
   const [showInput, setShowInput] = useState(false);
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDesc, setTaskDesc] = useState("");
+
+  const { data: tasksResponse, isLoading } = useQuery<
+    ApiResponse<ITask[]>,
+    Error
+  >({
+    queryKey: ["tasks", list?.id],
+    queryFn: () => taskService.getTasks(list!.id),
+    enabled: !!list?.id,
+  });
 
   const handleAddTask = () => {
     if (taskTitle.trim()) {
@@ -37,13 +52,18 @@ const TaskListView: React.FC<TaskListViewProps> = ({
     return <div className="text-center text-gray-400">No List Selected</div>;
   }
 
+  const topLevelTasks = (tasksResponse?.data || []).filter(
+    (task: ITask) => !task.parentTaskId
+  );
+
+  console.log("first", list);
   return (
     <div className="max-w-2xl mx-auto relative">
       <div className="flex items-center justify-between mb-8">
-        <h2 className="text-3xl font-extrabold tracking-tight">{list.name}</h2>
+        <h2 className="text-3xl font-extrabold tracking-tight">{list.title}</h2>
       </div>
       {showInput && (
-        <div className="mb-4 bg-white/80 backdrop-blur-lg p-6 rounded-2xl shadow-xl flex flex-col gap-2 animate-fade-in">
+        <div className="mb-4 bg-card dark:bg-neutral-800 p-6 rounded-2xl shadow-xl flex flex-col gap-2 animate-fade-in">
           <input
             type="text"
             className="input input-bordered w-full text-lg"
@@ -61,10 +81,7 @@ const TaskListView: React.FC<TaskListViewProps> = ({
             rows={2}
           />
           <div className="flex gap-2">
-            <button
-              className="btn btn-primary btn-sm"
-              onClick={handleAddTask}
-            >
+            <button className="btn btn-primary btn-sm" onClick={handleAddTask}>
               Add
             </button>
             <button
@@ -77,22 +94,25 @@ const TaskListView: React.FC<TaskListViewProps> = ({
         </div>
       )}
       <div className="space-y-5 pb-24">
-        {list.tasks.length === 0 ? (
+        {isLoading ? (
+          <div className="text-center text-gray-400">Loading tasks...</div>
+        ) : topLevelTasks.length === 0 ? (
           <div className="text-center text-gray-400">No tasks found.</div>
         ) : (
-          list.tasks.map((task) => (
+          topLevelTasks.map((task: ITask) => (
             <Card
               key={task.id}
-              title={task.title}
-              description={task.description}
-              completed={task.completed}
-              onToggle={() => onToggleTask(task.id)}
+              task={task}
+              allTasks={tasksResponse?.data || []}
+              onToggle={() => onToggleTask(task.id, task.status)}
               onDelete={() => onDeleteTask(task.id)}
+              onStar={() => onStarTask(task.id)}
+              onCreateSubtask={(title) => onAddTask(title, undefined, task.id)}
+              starred={starredTasks.includes(task.id)}
             />
           ))
         )}
       </div>
-      {/* Floating Add Task Button */}
       {!showInput && (
         <button
           className="btn btn-primary btn-circle fixed bottom-10 right-10 md:bottom-16 md:right-24 shadow-xl animate-bounce"
