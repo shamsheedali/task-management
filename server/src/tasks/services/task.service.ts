@@ -32,7 +32,7 @@ export default class TaskService
     taskListId: string,
     userId: string,
     description?: string,
-    status?: 'todo' | 'in-progress' | 'done',
+    status?: 'todo' | 'done',
     priority?: 'low' | 'medium' | 'high',
     dueDate?: Date,
     parentTaskId?: string
@@ -94,7 +94,7 @@ export default class TaskService
     userId: string,
     title?: string,
     description?: string,
-    status?: 'todo' | 'in-progress' | 'done',
+    status?: 'todo' | 'done',
     priority?: 'low' | 'medium' | 'high',
     dueDate?: Date,
     parentTaskId?: string

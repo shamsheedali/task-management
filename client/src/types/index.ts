@@ -9,7 +9,7 @@ export interface ITask {
   id: string;
   title: string;
   description?: string;
-  status: "todo" | "in-progress" | "done";
+  status: "todo" | "done";
   priority: "low" | "medium" | "high";
   dueDate?: Date;
   taskListId: string;

@@ -1,19 +1,63 @@
 import React, { useState } from "react";
-import { Trash2, CheckCircle, Star, PlusCircle } from "lucide-react";
-import type { ITask } from "../types";
+import { Trash2, CheckCircle, Star, PlusCircle, Edit } from "lucide-react";
+import taskService from "../services/taskService";
+import useTaskStore from "../store/taskStore";
+import type { ITask, ApiResponse } from "../types";
 
 interface TaskCardProps {
   task: ITask;
   allTasks: ITask[];
   starred: boolean;
+  onUpdateTask: (updatedTask: ITask) => void;
+  onEditTask: (task: ITask) => void;
+  onDeleteTask: (taskId: string) => void;
 }
 
-const Card: React.FC<TaskCardProps> = ({ task, allTasks, starred }) => {
+const Card: React.FC<TaskCardProps> = ({
+  task,
+  allTasks,
+  starred,
+  onUpdateTask,
+  onEditTask,
+  onDeleteTask,
+}) => {
   const [showSubtaskInput, setShowSubtaskInput] = useState(false);
   const [subtaskTitle, setSubtaskTitle] = useState("");
+  const { addCompletedTask, removeCompletedTask } = useTaskStore();
 
   const subtasks = allTasks.filter((t) => t.parentTaskId === task.id);
   const completed = task.status === "done";
+
+  const handleToggleTask = async () => {
+    try {
+      const newStatus: "todo" | "done" = completed ? "todo" : "done";
+      const updatedTask: Partial<ITask> = { status: newStatus };
+      const res: ApiResponse<ITask> = await taskService.updateTask(
+        task.taskListId,
+        task.id,
+        updatedTask
+      );
+      if (res.data.status === "done") {
+        addCompletedTask(task.id);
+      } else {
+        removeCompletedTask(task.id);
+      }
+      onUpdateTask(res.data);
+      console.log(`Task marked as ${newStatus}:`, res.data);
+    } catch (err: unknown) {
+      console.error("Failed to toggle task status:", err);
+    }
+  };
+
+  const handleDeleteTask = async () => {
+    try {
+      await taskService.deleteTask(task.taskListId, task.id);
+      onDeleteTask(task.id);
+      console.log(`Task deleted: ${task.id}`);
+    } catch (err: unknown) {
+      console.error("Failed to delete task:", err);
+    }
+  };
 
   return (
     <div className="bg-card dark:bg-neutral-800 rounded-xl shadow-lg flex flex-col gap-2 w-full p-6 border border-gray-200 dark:border-neutral-700 group transition hover:shadow-2xl">
@@ -24,6 +68,7 @@ const Card: React.FC<TaskCardProps> = ({ task, allTasks, starred }) => {
               ? "border-primary-500 bg-primary-500"
               : "border-gray-300 bg-white group-hover:border-primary-400"
           }`}
+          onClick={handleToggleTask}
           aria-label={completed ? "Mark as incomplete" : "Mark as complete"}
         >
           {completed ? (
@@ -64,7 +109,15 @@ const Card: React.FC<TaskCardProps> = ({ task, allTasks, starred }) => {
           <Star size={22} fill={starred ? "currentColor" : "none"} />
         </button>
         <button
+          className="ml-2 text-blue-500 hover:bg-blue-100 rounded-full p-1 transition"
+          onClick={() => onEditTask(task)}
+          aria-label="Edit task"
+        >
+          <Edit size={22} />
+        </button>
+        <button
           className="ml-2 text-danger-500 hover:bg-danger-100 rounded-full p-1 transition"
+          onClick={handleDeleteTask}
           aria-label="Delete task"
         >
           <Trash2 size={22} />
