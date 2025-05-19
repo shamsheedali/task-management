@@ -25,7 +25,7 @@ export default class TaskController {
     }
 
     const taskListId = req.params.taskListId;
-    const { title, description, status, priority, dueDate, parentTaskId } =
+    const { title, description, status, isStarred, dueDate, parentTaskId } =
       req.body;
     const task = await this._taskService.createTask(
       title,
@@ -33,7 +33,7 @@ export default class TaskController {
       userId,
       description,
       status,
-      priority,
+      isStarred,
       dueDate ? new Date(dueDate) : undefined,
       parentTaskId
     );
@@ -46,7 +46,7 @@ export default class TaskController {
         title: task.title,
         description: task.description,
         status: task.status,
-        priority: task.priority,
+        isStarred: task.isStarred,
         dueDate: task.dueDate,
         taskListId: task.taskListId,
         userId: task.userId,
@@ -66,7 +66,7 @@ export default class TaskController {
     }
 
     const taskId = req.params.taskId;
-    const { title, description, status, priority, dueDate, parentTaskId } =
+    const { title, description, status, isStarred, dueDate, parentTaskId } =
       req.body;
     const task = await this._taskService.updateTask(
       taskId,
@@ -74,7 +74,7 @@ export default class TaskController {
       title,
       description,
       status,
-      priority,
+      isStarred,
       dueDate ? new Date(dueDate) : undefined,
       parentTaskId
     );
@@ -87,7 +87,7 @@ export default class TaskController {
         title: task.title,
         description: task.description,
         status: task.status,
-        priority: task.priority,
+        isStarred: task.isStarred,
         dueDate: task.dueDate,
         taskListId: task.taskListId,
         userId: task.userId,
@@ -136,7 +136,7 @@ export default class TaskController {
         title: task.title,
         description: task.description,
         status: task.status,
-        priority: task.priority,
+        isStarred: task.isStarred,
         dueDate: task.dueDate,
         taskListId: task.taskListId,
         userId: task.userId,

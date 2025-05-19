@@ -32,8 +32,8 @@ export default class TaskService
     taskListId: string,
     userId: string,
     description?: string,
-    status?: 'todo' | 'in-progress' | 'done',
-    priority?: 'low' | 'medium' | 'high',
+    status?: 'todo' | 'done',
+    isStarred?: boolean,
     dueDate?: Date,
     parentTaskId?: string
   ): Promise<ITask> {
@@ -78,7 +78,7 @@ export default class TaskService
       title,
       description,
       status: status || 'todo',
-      priority: priority || 'medium',
+      isStarred: isStarred || false,
       dueDate,
       taskListId,
       userId,
@@ -94,8 +94,8 @@ export default class TaskService
     userId: string,
     title?: string,
     description?: string,
-    status?: 'todo' | 'in-progress' | 'done',
-    priority?: 'low' | 'medium' | 'high',
+    status?: 'todo' | 'done',
+    isStarred?: boolean,
     dueDate?: Date,
     parentTaskId?: string
   ): Promise<ITask> {
@@ -145,7 +145,7 @@ export default class TaskService
       title: title || task.title,
       description: description !== undefined ? description : task.description,
       status: status || task.status,
-      priority: priority || task.priority,
+      isStarred: isStarred !== undefined ? isStarred : task.isStarred,
       dueDate: dueDate !== undefined ? dueDate : task.dueDate,
       parentTaskId:
         parentTaskId !== undefined ? parentTaskId : task.parentTaskId,

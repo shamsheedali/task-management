@@ -27,6 +27,17 @@ export default class TaskListService
     this._userRepository = userRepository;
   }
 
+  async getTaskList(userId: string): Promise<ITaskList[]> {
+    const user = await this._userRepository.findById(userId);
+    if (!user) {
+      throw new AppError(ResponseMessages.NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+
+    const taskLists = await this._taskListRepository.find({ userId });
+    logger.info(`Retrieved ${taskLists.length} task lists for user: ${userId}`);
+    return taskLists;
+  }
+
   async createTaskList(title: string, userId: string): Promise<ITaskList> {
     const user = await this._userRepository.findById(userId);
     if (!user) {

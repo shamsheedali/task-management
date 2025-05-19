@@ -15,6 +15,12 @@ const taskListController = container.get<TaskListController>(
   TYPES.TaskListController
 );
 
+router.get(
+  '/',
+  authMiddleware,
+  asyncWrap(taskListController.getTaskList.bind(taskListController))
+);
+
 /**
  * @swagger
  * /api/tasklists:

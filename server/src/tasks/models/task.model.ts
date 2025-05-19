@@ -4,8 +4,8 @@ export interface ITask extends Document {
   _id: string;
   title: string;
   description?: string;
-  status: 'todo' | 'in-progress' | 'done';
-  priority: 'low' | 'medium' | 'high';
+  status: 'todo' | 'done';
+  isStarred: boolean;
   dueDate?: Date;
   taskListId: string;
   userId: string;
@@ -20,14 +20,10 @@ const taskSchema = new Schema<ITask>(
     description: { type: String, trim: true },
     status: {
       type: String,
-      enum: ['todo', 'in-progress', 'done'],
+      enum: ['todo', 'done'],
       default: 'todo',
     },
-    priority: {
-      type: String,
-      enum: ['low', 'medium', 'high'],
-      default: 'medium',
-    },
+    isStarred: { type: Boolean, default: false },
     dueDate: { type: Date },
     taskListId: { type: String, required: true },
     userId: { type: String, required: true },
@@ -36,7 +32,7 @@ const taskSchema = new Schema<ITask>(
   { timestamps: true }
 );
 
-// Ensure tasks are unique per taskListId and title for a user
+// Tasks are unique per taskListId and title for a user
 taskSchema.index({ taskListId: 1, userId: 1, title: 1 }, { unique: true });
 
 export const Task = model<ITask>('Task', taskSchema);

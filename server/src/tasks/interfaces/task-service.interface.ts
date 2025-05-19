@@ -7,7 +7,7 @@ export interface ITaskService {
     userId: string,
     description?: string,
     status?: 'todo' | 'in-progress' | 'done',
-    priority?: 'low' | 'medium' | 'high',
+    isStarred?: boolean,
     dueDate?: Date,
     parentTaskId?: string
   ): Promise<ITask>;
@@ -17,7 +17,7 @@ export interface ITaskService {
     title?: string,
     description?: string,
     status?: 'todo' | 'in-progress' | 'done',
-    priority?: 'low' | 'medium' | 'high',
+    isStarred?: boolean,
     dueDate?: Date,
     parentTaskId?: string
   ): Promise<ITask>;
