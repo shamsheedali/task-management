@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "../store/authStore";
 import Navbar from "../components/Navbar";
@@ -6,17 +6,21 @@ import Navbar from "../components/Navbar";
 const Profile: React.FC = () => {
   const { user, setUser } = useAuthStore();
   const navigate = useNavigate();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const handleLogout = () => {
     setUser(null);
     localStorage.removeItem("userToken");
-    localStorage.removeItem("auth-storage"); // Clear persisted store
+    localStorage.removeItem("auth-storage");
     navigate("/login");
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-bg via-primary-50 to-secondary-500/10 pt-20">
-        <Navbar />
+      <Navbar
+        isSidebarOpen={isSidebarOpen}
+        setIsSidebarOpen={setIsSidebarOpen}
+      />
       <div className="p-8 max-w-md w-full bg-card dark:bg-neutral-800 backdrop-blur-lg rounded-2xl shadow-xl flex flex-col items-center gap-6">
         <h1 className="text-2xl font-bold text-text-primary">Profile</h1>
         <div className="avatar">

@@ -156,21 +156,21 @@ const Card: React.FC<TaskCardProps> = ({
         </div>
 
         <button
-          className="ml-2 text-yellow-400 hover:text-yellow-500 transition-colors"
+          className="ml-2 text-yellow-400 hover:text-yellow-500 transition-colors cursor-pointer"
           onClick={handleToggleStar}
           aria-label={starred ? "Unstar task" : "Star task"}
         >
           <Star size={22} fill={starred ? "currentColor" : "none"} />
         </button>
         <button
-          className="ml-2 text-blue-500 hover:bg-blue-100 rounded-full p-1 transition"
+          className="ml-2 text-blue-500 hover:bg-blue-100 rounded-full p-1 transition cursor-pointer"
           onClick={() => onEditTask(task)}
           aria-label="Edit task"
         >
           <Edit size={22} />
         </button>
         <button
-          className="ml-2 text-danger-500 hover:bg-danger-100 rounded-full p-1 transition"
+          className="ml-2 text-danger-500 hover:bg-danger-100 rounded-full p-1 transition cursor-pointer"
           onClick={handleDeleteTask}
           aria-label="Delete task"
         >

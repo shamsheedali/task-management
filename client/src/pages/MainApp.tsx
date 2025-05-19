@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import TaskListView from "../components/TaskListView";
@@ -11,12 +11,19 @@ const MainApp: React.FC = () => {
   const starredTasks = useTaskStore((state) => state.starredTasks);
   const selectedList =
     taskLists.find((list) => list.id === selectedListId) || null;
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
     <div className="w-full min-h-screen bg-gradient-to-br from-bg via-primary-50 to-secondary-500/10 text-text-primary flex flex-col">
-      <Navbar />
+      <Navbar
+        isSidebarOpen={isSidebarOpen}
+        setIsSidebarOpen={setIsSidebarOpen}
+      />
       <div className="flex flex-1 pt-20">
-        <Sidebar />
+        <Sidebar
+          isSidebarOpen={isSidebarOpen}
+          setIsSidebarOpen={setIsSidebarOpen}
+        />
         <main className="flex-1 p-8 ml-0 md:ml-[20rem] overflow-auto min-h-[calc(100vh-5rem)] transition-all">
           {showStarredTasks ? (
             <StarredTasksView />
