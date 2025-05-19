@@ -3,14 +3,25 @@ import { useMutation } from "@tanstack/react-query";
 import { useNavigate, Link } from "react-router-dom";
 import InputField from "../components/InputField";
 import userService from "../services/userService";
+import useAuthStore from "../store/authStore";
 
 const Login: React.FC = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const navigate = useNavigate();
+  const setUser = useAuthStore((state) => state.setUser);
 
   const mutation = useMutation({
     mutationFn: userService.login,
-    onSuccess: () => navigate("/"),
+    onSuccess: (data) => {
+      if (data.data) {
+        setUser({
+          id: data.data._id,
+          username: data.data.username,
+          email: data.data.email,
+        });
+      }
+      navigate("/");
+    },
   });
 
   const handleSubmit = (e: React.FormEvent) => {

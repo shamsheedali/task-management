@@ -3,14 +3,25 @@ import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import InputField from "../components/InputField";
 import userService from "../services/userService";
+import useAuthStore from "../store/authStore";
 
 const Otp: React.FC = () => {
   const [otp, setOtp] = useState("");
   const navigate = useNavigate();
+  const setUser = useAuthStore((state) => state.setUser);
 
   const mutation = useMutation({
     mutationFn: (otpCode: string) => userService.verifyOtp(otpCode),
-    onSuccess: () => navigate("/"),
+    onSuccess: (data) => {
+      if (data.data) {
+        setUser({
+          id: data.data._id,
+          username: data.data.username,
+          email: data.data.email,
+        });
+      }
+      navigate("/");
+    },
   });
 
   const handleSubmit = (e: React.FormEvent) => {

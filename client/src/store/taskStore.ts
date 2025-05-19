@@ -5,7 +5,8 @@ interface TaskStore {
   starredTasks: string[];
   completedTasks: string[];
   setSelectedListId: (id: string | null) => void;
-  toggleStar: (taskId: string) => void;
+  addStarredTask: (taskId: string) => void;
+  removeStarredTask: (taskId: string) => void;
   addCompletedTask: (taskId: string) => void;
   removeCompletedTask: (taskId: string) => void;
 }
@@ -15,11 +16,15 @@ const useTaskStore = create<TaskStore>((set) => ({
   starredTasks: [],
   completedTasks: [],
   setSelectedListId: (id) => set({ selectedListId: id }),
-  toggleStar: (taskId) =>
+  addStarredTask: (taskId) =>
     set((state) => ({
       starredTasks: state.starredTasks.includes(taskId)
-        ? state.starredTasks.filter((id) => id !== taskId)
+        ? state.starredTasks
         : [...state.starredTasks, taskId],
+    })),
+  removeStarredTask: (taskId) =>
+    set((state) => ({
+      starredTasks: state.starredTasks.filter((id) => id !== taskId),
     })),
   addCompletedTask: (taskId) =>
     set((state) => ({

@@ -17,9 +17,11 @@ const Sidebar: React.FC = () => {
     taskLists,
     selectedListId,
     showAllTasks,
+    showStarredTasks,
     setTaskLists,
     setSelectedListId,
     setShowAllTasks,
+    setShowStarredTasks,
     updateTaskList,
     deleteTaskList,
   } = useTaskListStore();
@@ -37,13 +39,14 @@ const Sidebar: React.FC = () => {
         setTaskLists(res.data);
       } catch (err: unknown) {
         console.error("Failed to fetch task lists:", err);
+        setTaskLists([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchTaskLists();
-  }, [setTaskLists]);
+  }, []); // Empty dependency array to run only on mount
 
   const handleCreateTaskList = async () => {
     if (listName.trim()) {
@@ -95,16 +98,31 @@ const Sidebar: React.FC = () => {
         <div className="space-y-2 mb-6">
           <button
             className={`flex items-center gap-2 px-3 py-2 rounded-lg transition font-medium ${
-              showAllTasks
+              showAllTasks && !showStarredTasks
                 ? "bg-primary-100 text-primary-700 shadow"
                 : "text-text-secondary hover:bg-primary-50 hover:text-primary-500"
             }`}
-            onClick={() => setShowAllTasks(true)}
+            onClick={() => {
+              setShowAllTasks(true);
+              setShowStarredTasks(false);
+              setSelectedListId(null);
+            }}
           >
             <CircleCheckBig />
             All tasks
           </button>
-          <button className="flex items-center gap-2 text-text-secondary hover:text-primary-500 transition font-medium">
+          <button
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg transition font-medium ${
+              showStarredTasks
+                ? "bg-primary-100 text-primary-700 shadow"
+                : "text-text-secondary hover:bg-primary-50 hover:text-primary-500"
+            }`}
+            onClick={() => {
+              setShowAllTasks(false);
+              setShowStarredTasks(true);
+              setSelectedListId(null);
+            }}
+          >
             <Star />
             Starred
           </button>
@@ -135,11 +153,15 @@ const Sidebar: React.FC = () => {
                 ) : (
                   <button
                     className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-lg text-base font-semibold transition ${
-                      selectedListId === list.id
+                      selectedListId === list.id && !showStarredTasks
                         ? "bg-primary-100 text-primary-700 shadow"
                         : "text-text-secondary hover:bg-primary-50 hover:text-primary-700"
                     }`}
-                    onClick={() => setSelectedListId(list.id)}
+                    onClick={() => {
+                      setSelectedListId(list.id);
+                      setShowAllTasks(false);
+                      setShowStarredTasks(false);
+                    }}
                   >
                     <List />
                     {list.title}

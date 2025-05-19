@@ -8,6 +8,7 @@ interface TaskCardProps {
   task: ITask;
   allTasks: ITask[];
   starred: boolean;
+  setTasks: React.Dispatch<React.SetStateAction<ITask[]>>;
   onUpdateTask: (updatedTask: ITask) => void;
   onEditTask: (task: ITask) => void;
   onDeleteTask: (taskId: string) => void;
@@ -17,13 +18,19 @@ const Card: React.FC<TaskCardProps> = ({
   task,
   allTasks,
   starred,
+  setTasks,
   onUpdateTask,
   onEditTask,
   onDeleteTask,
 }) => {
   const [showSubtaskInput, setShowSubtaskInput] = useState(false);
   const [subtaskTitle, setSubtaskTitle] = useState("");
-  const { addCompletedTask, removeCompletedTask } = useTaskStore();
+  const {
+    addCompletedTask,
+    removeCompletedTask,
+    addStarredTask,
+    removeStarredTask,
+  } = useTaskStore();
 
   const subtasks = allTasks.filter((t) => t.parentTaskId === task.id);
   const completed = task.status === "done";
@@ -42,10 +49,56 @@ const Card: React.FC<TaskCardProps> = ({
       } else {
         removeCompletedTask(task.id);
       }
+      setTasks((prev) => prev.map((t) => (t.id === task.id ? res.data : t)));
       onUpdateTask(res.data);
       console.log(`Task marked as ${newStatus}:`, res.data);
     } catch (err: unknown) {
       console.error("Failed to toggle task status:", err);
+    }
+  };
+
+  const handleToggleStar = async () => {
+    try {
+      const newStarred = !starred;
+      const updatedTask: Partial<ITask> = { isStarred: newStarred };
+      const res: ApiResponse<ITask> = await taskService.updateTask(
+        task.taskListId,
+        task.id,
+        updatedTask
+      );
+      if (newStarred) {
+        addStarredTask(task.id);
+      } else {
+        removeStarredTask(task.id);
+      }
+      setTasks((prev) => prev.map((t) => (t.id === task.id ? res.data : t)));
+      onUpdateTask(res.data);
+      console.log(`Task starred: ${newStarred}`, res.data);
+    } catch (err: unknown) {
+      console.error("Failed to toggle star:", err);
+    }
+  };
+
+  const handleAddSubtask = async () => {
+    if (!subtaskTitle.trim()) return;
+
+    try {
+      const subtaskData: Partial<ITask> = {
+        title: subtaskTitle,
+        status: "todo",
+        isStarred: false,
+        parentTaskId: task.id,
+      };
+      const res: ApiResponse<ITask> = await taskService.createTask(
+        task.taskListId,
+        subtaskData
+      );
+      setTasks((prev) => [...prev, res.data]);
+      setSubtaskTitle("");
+      setShowSubtaskInput(false);
+      console.log(`Subtask created: ${res.data.id}`);
+    } catch (err: unknown) {
+      console.error("Failed to create subtask:", err);
     }
   };
 
@@ -104,6 +157,7 @@ const Card: React.FC<TaskCardProps> = ({
 
         <button
           className="ml-2 text-yellow-400 hover:text-yellow-500 transition-colors"
+          onClick={handleToggleStar}
           aria-label={starred ? "Unstar task" : "Star task"}
         >
           <Star size={22} fill={starred ? "currentColor" : "none"} />
@@ -143,7 +197,12 @@ const Card: React.FC<TaskCardProps> = ({
               onChange={(e) => setSubtaskTitle(e.target.value)}
               autoFocus
             />
-            <button className="btn btn-xs btn-primary">Add</button>
+            <button
+              className="btn btn-xs btn-primary"
+              onClick={handleAddSubtask}
+            >
+              Add
+            </button>
           </div>
         )}
       </div>

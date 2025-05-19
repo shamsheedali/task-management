@@ -12,15 +12,16 @@ type TaskListViewProps = {
 };
 
 const TaskListView: React.FC<TaskListViewProps> = ({ list, starredTasks }) => {
-  const { taskLists, showAllTasks } = useTaskListStore();
-  const { completedTasks, addCompletedTask, removeCompletedTask } =
-    useTaskStore();
+  const { taskLists, showAllTasks, updateTasksInList } = useTaskListStore();
+  const {
+    completedTasks,
+    addCompletedTask,
+    removeCompletedTask,
+    addStarredTask,
+  } = useTaskStore();
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDesc, setTaskDesc] = useState("");
   const [taskStatus, setTaskStatus] = useState<"todo" | "done">("todo");
-  const [taskPriority, setTaskPriority] = useState<"low" | "medium" | "high">(
-    "medium"
-  );
   const [taskDueDate, setTaskDueDate] = useState<string>("");
   const [selectedTaskListId, setSelectedTaskListId] = useState<string>("");
   const [tasks, setTasks] = useState<ITask[]>([]);
@@ -38,18 +39,23 @@ const TaskListView: React.FC<TaskListViewProps> = ({ list, starredTasks }) => {
               const res: ApiResponse<ITask[]> = await taskService.getTasks(
                 list.id
               );
+              updateTasksInList(list.id, res.data); // Sync taskLists.tasks
               return res.data;
             })
           );
           fetchedTasks = allTasks.flat();
         } else if (list?.id) {
           const res: ApiResponse<ITask[]> = await taskService.getTasks(list.id);
+          updateTasksInList(list.id, res.data); // Sync taskLists.tasks
           fetchedTasks = res.data;
         }
         setTasks(fetchedTasks);
         fetchedTasks.forEach((task) => {
           if (task.status === "done" && !completedTasks.includes(task.id)) {
             addCompletedTask(task.id);
+          }
+          if (task.isStarred && !starredTasks.includes(task.id)) {
+            addStarredTask(task.id);
           }
         });
       } catch (err: unknown) {
@@ -59,7 +65,7 @@ const TaskListView: React.FC<TaskListViewProps> = ({ list, starredTasks }) => {
     };
 
     fetchTasks();
-  }, [taskLists, showAllTasks, list, addCompletedTask, completedTasks]);
+  }, [list?.id, showAllTasks, taskLists.length]); // Fetch when list, view mode, or list count changes
 
   const handleCreateTask = async () => {
     if (!taskTitle.trim() || !selectedTaskListId) return;
@@ -69,7 +75,7 @@ const TaskListView: React.FC<TaskListViewProps> = ({ list, starredTasks }) => {
         title: taskTitle,
         description: taskDesc || undefined,
         status: taskStatus,
-        priority: taskPriority,
+        isStarred: false,
         dueDate: taskDueDate ? new Date(taskDueDate) : undefined,
       };
 
@@ -78,10 +84,10 @@ const TaskListView: React.FC<TaskListViewProps> = ({ list, starredTasks }) => {
         taskData
       );
       setTasks((prev) => [...prev, res.data]);
+      updateTasksInList(selectedTaskListId, [...tasks, res.data]); // Sync taskLists.tasks
       if (res.data.status === "done") {
         addCompletedTask(res.data.id);
       }
-
       resetModal();
     } catch (err: unknown) {
       console.error("Failed to create task:", err);
@@ -96,7 +102,6 @@ const TaskListView: React.FC<TaskListViewProps> = ({ list, starredTasks }) => {
         title: taskTitle,
         description: taskDesc || undefined,
         status: taskStatus,
-        priority: taskPriority,
         dueDate: taskDueDate ? new Date(taskDueDate) : undefined,
       };
 
@@ -108,12 +113,15 @@ const TaskListView: React.FC<TaskListViewProps> = ({ list, starredTasks }) => {
       setTasks((prev) =>
         prev.map((task) => (task.id === editingTaskId ? res.data : task))
       );
+      updateTasksInList(
+        selectedTaskListId,
+        tasks.map((task) => (task.id === editingTaskId ? res.data : task))
+      ); // Sync taskLists.tasks
       if (res.data.status === "done") {
         addCompletedTask(res.data.id);
       } else {
         removeCompletedTask(res.data.id);
       }
-
       resetModal();
     } catch (err: unknown) {
       console.error("Failed to update task:", err);
@@ -127,7 +135,6 @@ const TaskListView: React.FC<TaskListViewProps> = ({ list, starredTasks }) => {
     setTaskTitle(task.title);
     setTaskDesc(task.description || "");
     setTaskStatus(task.status);
-    setTaskPriority(task.priority);
     setTaskDueDate(
       task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : ""
     );
@@ -136,6 +143,10 @@ const TaskListView: React.FC<TaskListViewProps> = ({ list, starredTasks }) => {
 
   const handleDeleteTask = (taskId: string) => {
     setTasks((prev) => prev.filter((task) => task.id !== taskId));
+    updateTasksInList(
+      list?.id || "",
+      tasks.filter((task) => task.id !== taskId)
+    ); // Sync taskLists.tasks
     removeCompletedTask(taskId);
   };
 
@@ -143,7 +154,6 @@ const TaskListView: React.FC<TaskListViewProps> = ({ list, starredTasks }) => {
     setTaskTitle("");
     setTaskDesc("");
     setTaskStatus("todo");
-    setTaskPriority("medium");
     setTaskDueDate("");
     setSelectedTaskListId("");
     setEditingTaskId(null);
@@ -213,17 +223,6 @@ const TaskListView: React.FC<TaskListViewProps> = ({ list, starredTasks }) => {
             <option value="todo">To Do</option>
             <option value="done">Done</option>
           </select>
-          <select
-            className="select select-bordered w-full"
-            value={taskPriority}
-            onChange={(e) =>
-              setTaskPriority(e.target.value as "low" | "medium" | "high")
-            }
-          >
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-          </select>
           <input
             type="date"
             className="input input-bordered w-full text-base"
@@ -256,6 +255,7 @@ const TaskListView: React.FC<TaskListViewProps> = ({ list, starredTasks }) => {
                     task={task}
                     allTasks={tasks}
                     starred={starredTasks.includes(task.id)}
+                    setTasks={setTasks}
                     onUpdateTask={handleUpdateTask}
                     onEditTask={handleEditTask}
                     onDeleteTask={handleDeleteTask}
@@ -275,6 +275,7 @@ const TaskListView: React.FC<TaskListViewProps> = ({ list, starredTasks }) => {
                       task={task}
                       allTasks={tasks}
                       starred={starredTasks.includes(task.id)}
+                      setTasks={setTasks}
                       onUpdateTask={handleUpdateTask}
                       onEditTask={handleEditTask}
                       onDeleteTask={handleDeleteTask}

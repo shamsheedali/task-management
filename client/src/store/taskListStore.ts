@@ -5,45 +5,40 @@ interface TaskListStore {
   taskLists: ITaskList[];
   selectedListId: string | null;
   showAllTasks: boolean;
-  setTaskLists: (taskLists: ITaskList[]) => void;
-  setSelectedListId: (listId: string | null) => void;
+  showStarredTasks: boolean;
+  setTaskLists: (lists: ITaskList[]) => void;
+  setSelectedListId: (id: string | null) => void;
   setShowAllTasks: (show: boolean) => void;
-  addTask: (taskListId: string, task: ITask) => void;
-  updateTaskList: (listId: string, updatedList: ITaskList) => void;
-  deleteTaskList: (listId: string) => void;
+  setShowStarredTasks: (show: boolean) => void;
+  updateTaskList: (id: string, updatedList: ITaskList) => void;
+  deleteTaskList: (id: string) => void;
+  updateTasksInList: (taskListId: string, tasks: ITask[]) => void;
 }
 
 const useTaskListStore = create<TaskListStore>((set) => ({
   taskLists: [],
   selectedListId: null,
   showAllTasks: false,
-  setTaskLists: (taskLists) => set({ taskLists }),
-  setSelectedListId: (listId) =>
-    set({ selectedListId: listId, showAllTasks: false }),
-  setShowAllTasks: (show) =>
-    set((state) => ({
-      showAllTasks: show,
-      selectedListId: show ? null : state.selectedListId,
-    })),
-  addTask: (taskListId, task) =>
+  showStarredTasks: false,
+  setTaskLists: (lists) => set({ taskLists: lists }),
+  setSelectedListId: (id) => set({ selectedListId: id }),
+  setShowAllTasks: (show) => set({ showAllTasks: show }),
+  setShowStarredTasks: (show) => set({ showStarredTasks: show }),
+  updateTaskList: (id, updatedList) =>
     set((state) => ({
       taskLists: state.taskLists.map((list) =>
-        list.id === taskListId
-          ? { ...list, tasks: [...(list.tasks || []), task] }
-          : list
+        list.id === id ? updatedList : list
       ),
     })),
-  updateTaskList: (listId, updatedList) =>
+  deleteTaskList: (id) =>
+    set((state) => ({
+      taskLists: state.taskLists.filter((list) => list.id !== id),
+    })),
+  updateTasksInList: (taskListId, tasks) =>
     set((state) => ({
       taskLists: state.taskLists.map((list) =>
-        list.id === listId ? { ...list, ...updatedList } : list
+        list.id === taskListId ? { ...list, tasks } : list
       ),
-    })),
-  deleteTaskList: (listId) =>
-    set((state) => ({
-      taskLists: state.taskLists.filter((list) => list.id !== listId),
-      selectedListId:
-        state.selectedListId === listId ? null : state.selectedListId,
     })),
 }));
 

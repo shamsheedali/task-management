@@ -1,3 +1,8 @@
+export interface User {
+  id: string;
+  username: string;
+  email: string;
+}
 export interface ITaskList {
   id: string;
   title: string;
@@ -10,7 +15,7 @@ export interface ITask {
   title: string;
   description?: string;
   status: "todo" | "done";
-  priority: "low" | "medium" | "high";
+  isStarred: boolean;
   dueDate?: Date;
   taskListId: string;
   userId: string;

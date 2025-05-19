@@ -18,10 +18,10 @@ export const createTaskSchema = z.object({
     .enum(['todo', 'in-progress', 'done'])
     .optional()
     .openapi({ description: 'Status of the task' }),
-  priority: z
-    .enum(['low', 'medium', 'high'])
+  isStarred: z
+    .boolean()
     .optional()
-    .openapi({ description: 'Priority of the task' }),
+    .openapi({ description: 'Whether the task is starred' }),
   dueDate: z
     .string()
     .datetime()
@@ -49,10 +49,10 @@ export const updateTaskSchema = z.object({
     .enum(['todo', 'in-progress', 'done'])
     .optional()
     .openapi({ description: 'Status of the task' }),
-  priority: z
-    .enum(['low', 'medium', 'high'])
+  isStarred: z
+    .boolean()
     .optional()
-    .openapi({ description: 'Priority of the task' }),
+    .openapi({ description: 'Whether the task is starred' }),
   dueDate: z
     .string()
     .datetime()
