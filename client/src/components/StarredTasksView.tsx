@@ -13,7 +13,7 @@ const StarredTasksView: React.FC = () => {
     .flatMap((list) => list.tasks || [])
     .filter((task) => starredTasks.includes(task.id));
 
-  const handleEditTask = (task: ITask) => {
+  const handleEditTask = () => {
     // Editing handled in Card, triggers TaskListView modal
   };
 
