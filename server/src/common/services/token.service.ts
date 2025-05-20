@@ -11,7 +11,7 @@ import logger from '../../utils/logger';
 @injectable()
 export default class TokenService implements ITokenService {
   generateAccessToken(userId: string): string {
-    return jwt.sign({ id: userId }, env.JWT_SECRET, { expiresIn: '1h' });
+    return jwt.sign({ id: userId }, env.JWT_SECRET, { expiresIn: '7d' });
   }
 
   generateRefreshToken(userId: string): string {

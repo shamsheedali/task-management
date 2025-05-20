@@ -29,23 +29,12 @@ api.interceptors.response.use(
   (error) => {
     const message =
       error.response?.data?.message || "An unexpected error occurred";
-    switch (error.response?.status) {
-      case 400:
-        toast.error(message, { toastId: "bad-request" });
-        break;
-      case 401:
-        toast.error("Please log in to continue", { toastId: "unauthorized" });
-        break;
-      case 404:
-        toast.error("Resource not found", { toastId: "not-found" });
-        break;
-      case 409:
-        toast.error(message, { toastId: "conflict" });
-        break;
-      default:
-        toast.error("Something went wrong", { toastId: "server-error" });
-        console.error("API error:", error);
-    }
+    const status = error.response?.status;
+    const toastId = status ? `error-${status}` : "error";
+
+    toast.error(message, { toastId });
+    console.error("API error:", error);
+
     return Promise.reject(error);
   }
 );
