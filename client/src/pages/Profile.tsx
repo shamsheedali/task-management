@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "../store/authStore";
 import Navbar from "../components/Navbar";
+import { toast } from "react-toastify";
 
 const Profile: React.FC = () => {
   const { user, setUser } = useAuthStore();
@@ -12,6 +13,7 @@ const Profile: React.FC = () => {
     setUser(null);
     localStorage.removeItem("userToken");
     localStorage.removeItem("auth-storage");
+    toast.success("Logout successful");
     navigate("/login");
   };
 

@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ToastContainer, toast } from "react-toastify";
 
 import SignUp from "./pages/SignUp";
 import Login from "./pages/Login";
@@ -13,6 +14,7 @@ const queryClient = new QueryClient();
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <ToastContainer theme="dark" />
       <BrowserRouter>
         <Routes>
           <Route path="/signup" element={<SignUp />} />

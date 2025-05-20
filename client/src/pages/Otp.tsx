@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import InputField from "../components/InputField";
 import userService from "../services/userService";
 import useAuthStore from "../store/authStore";
@@ -20,13 +21,26 @@ const Otp: React.FC = () => {
           email: data.data.email,
         });
       }
+      toast.success("Account created successfully");
       navigate("/");
     },
   });
 
+  const validateForm = () => {
+    if (otp.length !== 6) {
+      toast.error("OTP must be exactly 6 characters", {
+        toastId: "otp-error",
+      });
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    mutation.mutate(otp);
+    if (validateForm()) {
+      mutation.mutate(otp);
+    }
   };
 
   return (
@@ -42,8 +56,12 @@ const Otp: React.FC = () => {
             value={otp}
             onChange={(e) => setOtp(e.target.value)}
           />
-          <button type="submit" className="btn btn-primary w-full">
-            Verify OTP
+          <button
+            type="submit"
+            className="btn btn-primary w-full disabled:opacity-50"
+            disabled={mutation.isPending}
+          >
+            {mutation.isPending ? "Verifying..." : "Verify OTP"}
           </button>
         </form>
       </div>

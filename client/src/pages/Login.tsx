@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate, Link } from "react-router-dom";
+import { toast } from "react-toastify";
 import InputField from "../components/InputField";
 import userService from "../services/userService";
 import useAuthStore from "../store/authStore";
@@ -20,13 +21,40 @@ const Login: React.FC = () => {
           email: data.data.email,
         });
       }
+      toast.success("Login successful");
       navigate("/");
     },
   });
 
+  const validateForm = () => {
+    // Email: valid format
+    const emailRegex = /^[\w-.]+@([\w-]+.)+[\w-]{2,4}$/;
+    if (!emailRegex.test(formData.email)) {
+      toast.error("Please enter a valid email address", {
+        toastId: "email-error",
+      });
+      return false;
+    }
+
+    // Password: 8+ chars, 1 uppercase, 1 lowercase, 1 number, 1 special char
+    const passwordRegex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/;
+    if (!passwordRegex.test(formData.password)) {
+      toast.error(
+        "Password must be at least 8 characters and include one uppercase letter, one lowercase letter, one number, and one special character",
+        { toastId: "password-error" }
+      );
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    mutation.mutate(formData);
+    if (validateForm()) {
+      mutation.mutate(formData);
+    }
   };
 
   return (
@@ -50,8 +78,12 @@ const Login: React.FC = () => {
               setFormData({ ...formData, password: e.target.value })
             }
           />
-          <button type="submit" className="btn btn-primary w-full">
-            Login
+          <button
+            type="submit"
+            className="btn btn-primary w-full disabled:opacity-50"
+            disabled={mutation.isPending}
+          >
+            {mutation.isPending ? "Logging In..." : "Login"}
           </button>
         </form>
         <div className="text-center mt-4 text-sm">

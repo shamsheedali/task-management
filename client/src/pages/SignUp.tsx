@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate, Link } from "react-router-dom";
+import { toast } from "react-toastify";
 import InputField from "../components/InputField";
 import userService from "../services/userService";
 
@@ -14,12 +15,49 @@ const SignUp: React.FC = () => {
 
   const mutation = useMutation({
     mutationFn: userService.signUp,
-    onSuccess: () => navigate("/otp"),
+    onSuccess: () => {
+      toast.success("Otp shared");
+      navigate("/otp");
+    },
   });
+
+  const validateForm = () => {
+    // Username: at least 4 characters
+    if (formData.username.length < 4) {
+      toast.error("Username must be at least 4 characters", {
+        toastId: "username-error",
+      });
+      return false;
+    }
+
+    // Email: valid format
+    const emailRegex = /^[\w-.]+@([\w-]+.)+[\w-]{2,4}$/;
+    if (!emailRegex.test(formData.email)) {
+      toast.error("Please enter a valid email address", {
+        toastId: "email-error",
+      });
+      return false;
+    }
+
+    // Password: 8+ chars, 1 uppercase, 1 lowercase, 1 number, 1 special char
+    const passwordRegex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/;
+    if (!passwordRegex.test(formData.password)) {
+      toast.error(
+        "Password must be at least 8 characters and include one uppercase letter, one lowercase letter, one number, and one special character",
+        { toastId: "password-error" }
+      );
+      return false;
+    }
+
+    return true;
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    mutation.mutate(formData);
+    if (validateForm()) {
+      mutation.mutate(formData);
+    }
   };
 
   return (
@@ -51,8 +89,12 @@ const SignUp: React.FC = () => {
               setFormData({ ...formData, password: e.target.value })
             }
           />
-          <button type="submit" className="btn btn-primary w-full">
-            Sign Up
+          <button
+            type="submit"
+            className="btn btn-primary w-full disabled:opacity-50"
+            disabled={mutation.isPending}
+          >
+            {mutation.isPending ? "Signing Up..." : "Sign Up"}
           </button>
         </form>
         <div className="text-center mt-4 text-sm">
