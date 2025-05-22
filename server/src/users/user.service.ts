@@ -103,6 +103,7 @@ export default class UserService
       username,
       email,
       passwordHash,
+      teamIds: [], // Initialize teamIds
     });
 
     await redisClient.del(`otp:${email}`);
@@ -137,5 +138,45 @@ export default class UserService
       throw new AppError(ResponseMessages.NOT_FOUND, HttpStatus.NOT_FOUND);
     }
     return user;
+  }
+
+  async addTeamToUser(userId: string, teamId: string): Promise<void> {
+    const user = await this._userRepository.findById(userId);
+    if (!user) {
+      throw new AppError(ResponseMessages.NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+
+    if (user.teamIds.includes(teamId)) {
+      throw new AppError(
+        'User is already a member of this team',
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    await this._userRepository.update(userId, {
+      $push: { teamIds: teamId },
+    });
+
+    logger.info(`Team ${teamId} added to user: ${userId}`);
+  }
+
+  async removeTeamFromUser(userId: string, teamId: string): Promise<void> {
+    const user = await this._userRepository.findById(userId);
+    if (!user) {
+      throw new AppError(ResponseMessages.NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+
+    if (!user.teamIds.includes(teamId)) {
+      throw new AppError(
+        'User is not a member of this team',
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    await this._userRepository.update(userId, {
+      $pull: { teamIds: teamId },
+    });
+
+    logger.info(`Team ${teamId} removed from user: ${userId}`);
   }
 }

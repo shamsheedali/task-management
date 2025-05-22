@@ -6,4 +6,6 @@ export interface IUserService {
   verifyAndRegister(email: string, otp: string): Promise<IUser>;
   loginUser(dto: LoginInput): Promise<IUser>;
   findById(id: string): Promise<IUser>;
+  addTeamToUser(userId: string, teamId: string): Promise<void>;
+  removeTeamFromUser(userId: string, teamId: string): Promise<void>;
 }

@@ -45,8 +45,10 @@ export default class UserController {
       req.body.email,
       req.body.otp
     );
-    const accessToken = this._tokenService.generateAccessToken(user._id);
-    const refreshToken = this._tokenService.generateRefreshToken(user._id);
+    const accessToken = await this._tokenService.generateAccessToken(user._id);
+    const refreshToken = await this._tokenService.generateRefreshToken(
+      user._id
+    );
     this._tokenService.setRefreshTokenCookie(res, refreshToken);
 
     const userDTO: UserResponseDTO = toUserResponseDTO(user);
@@ -65,8 +67,10 @@ export default class UserController {
    */
   async login(req: AuthRequest, res: Response) {
     const user = await this._userService.loginUser(req.body);
-    const accessToken = this._tokenService.generateAccessToken(user._id);
-    const refreshToken = this._tokenService.generateRefreshToken(user._id);
+    const accessToken = await this._tokenService.generateAccessToken(user._id);
+    const refreshToken = await this._tokenService.generateRefreshToken(
+      user._id
+    );
     this._tokenService.setRefreshTokenCookie(res, refreshToken);
 
     const userDTO: UserResponseDTO = toUserResponseDTO(user);
@@ -116,9 +120,12 @@ export default class UserController {
     }
 
     const decoded = this._tokenService.verifyRefreshToken(refreshToken);
-    const accessToken = this._tokenService.generateAccessToken(decoded.id);
-
-    const newRefreshToken = this._tokenService.generateRefreshToken(decoded.id);
+    const accessToken = await this._tokenService.generateAccessToken(
+      decoded.id
+    );
+    const newRefreshToken = await this._tokenService.generateRefreshToken(
+      decoded.id
+    );
     this._tokenService.setRefreshTokenCookie(res, newRefreshToken);
 
     res.status(HttpStatus.OK).json({

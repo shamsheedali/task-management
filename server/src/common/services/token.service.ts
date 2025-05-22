@@ -1,4 +1,4 @@
-import { injectable } from 'inversify';
+import { injectable, inject } from 'inversify';
 import jwt from 'jsonwebtoken';
 import { Response } from 'express';
 import { env } from '../../config/env';
@@ -7,15 +7,33 @@ import ResponseMessages from '../../common/constants/response';
 import HttpStatus from '../../common/constants/httpStatus';
 import { ITokenService } from '../interfaces/token-service.interface';
 import logger from '../../utils/logger';
+import TYPES from '../../types/inversify.types';
+import { IUserRepository } from '../../users/interfaces/user-repository.interface';
 
 @injectable()
 export default class TokenService implements ITokenService {
-  generateAccessToken(userId: string): string {
-    return jwt.sign({ id: userId }, env.JWT_SECRET, { expiresIn: '7d' });
+  private _userRepository: IUserRepository;
+
+  constructor(@inject(TYPES.UserRepository) userRepository: IUserRepository) {
+    this._userRepository = userRepository;
   }
 
-  generateRefreshToken(userId: string): string {
-    return jwt.sign({ id: userId }, env.REFRESH_JWT_SECRET, {
+  async generateAccessToken(userId: string): Promise<string> {
+    const user = await this._userRepository.findById(userId);
+    if (!user) {
+      throw new AppError(ResponseMessages.NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+    return jwt.sign({ id: userId, email: user.email }, env.JWT_SECRET, {
+      expiresIn: '7d',
+    });
+  }
+
+  async generateRefreshToken(userId: string): Promise<string> {
+    const user = await this._userRepository.findById(userId);
+    if (!user) {
+      throw new AppError(ResponseMessages.NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+    return jwt.sign({ id: userId, email: user.email }, env.REFRESH_JWT_SECRET, {
       expiresIn: '7d',
     });
   }
@@ -28,9 +46,12 @@ export default class TokenService implements ITokenService {
     });
   }
 
-  verifyRefreshToken(refreshToken: string): { id: string } {
+  verifyRefreshToken(refreshToken: string): { id: string; email: string } {
     try {
-      return jwt.verify(refreshToken, env.REFRESH_JWT_SECRET) as { id: string };
+      return jwt.verify(refreshToken, env.REFRESH_JWT_SECRET) as {
+        id: string;
+        email: string;
+      };
     } catch (error) {
       logger.error('Refresh token verification failed:', error);
       throw new AppError(
