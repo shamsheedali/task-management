@@ -8,10 +8,12 @@ import {
   Edit,
   Trash2,
   X,
+  Users,
 } from "lucide-react";
 import taskListService from "../services/taskListService";
 import useTaskListStore from "../store/taskListStore";
 import type { ITaskList, ApiResponse } from "../types";
+import { Link } from "react-router-dom";
 
 interface SidebarProps {
   isSidebarOpen: boolean;
@@ -117,6 +119,23 @@ const Sidebar: React.FC<SidebarProps> = ({
           </button>
           <div>
             <div className="space-y-2 mb-6">
+              <Link
+                to="/teams"
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition font-medium w-full ${
+                  !showAllTasks && !showStarredTasks && !selectedListId
+                    ? "bg-primary-100 text-primary-700 shadow"
+                    : "text-text-secondary hover:bg-primary-50 hover:text-primary-500"
+                }`}
+                onClick={() => {
+                  setShowAllTasks(false);
+                  setShowStarredTasks(false);
+                  setSelectedListId(null);
+                  setIsSidebarOpen(false);
+                }}
+              >
+                <Users />
+                Teams
+              </Link>
               <button
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg transition font-medium w-full ${
                   showAllTasks && !showStarredTasks
@@ -127,7 +146,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   setShowAllTasks(true);
                   setShowStarredTasks(false);
                   setSelectedListId(null);
-                  setIsSidebarOpen(false); // Close sidebar on mobile
+                  setIsSidebarOpen(false);
                 }}
               >
                 <CircleCheckBig />
@@ -143,7 +162,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   setShowAllTasks(false);
                   setShowStarredTasks(true);
                   setSelectedListId(null);
-                  setIsSidebarOpen(false); // Close sidebar on mobile
+                  setIsSidebarOpen(false);
                 }}
               >
                 <Star />
@@ -184,7 +203,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                           setSelectedListId(list.id);
                           setShowAllTasks(false);
                           setShowStarredTasks(false);
-                          setIsSidebarOpen(false); // Close sidebar on mobile
+                          setIsSidebarOpen(false);
                         }}
                       >
                         <List />
