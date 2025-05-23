@@ -140,6 +140,10 @@ export default class UserService
     return user;
   }
 
+  async findAll(): Promise<IUser[]> {
+    return this._userRepository.findAll();
+  }
+
   async addTeamToUser(userId: string, teamId: string): Promise<void> {
     const user = await this._userRepository.findById(userId);
     if (!user) {

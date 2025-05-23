@@ -1,148 +1,274 @@
 import { create } from "zustand";
-import type { ITask, User, Invite, Team, Notification } from "../types";
+import type { ITask, User, Team, Notification } from "../types";
+import { toast } from "react-toastify";
+import teamService from "../services/teamService";
+import userService from "../services/userService";
 
 interface TeamState {
   teams: Team[];
   users: User[];
   teamTasks: ITask[];
   notifications: Notification[];
-  addTeam: (team: Team) => void;
-  addInvite: (teamId: string, invite: Invite) => void;
-  joinTeam: (teamId: string, userId: string) => void;
-  leaveTeam: (teamId: string, userId: string) => void;
-  addTeamTask: (task: ITask) => void;
-  updateTeamTask: (taskId: string, updates: Partial<ITask>) => void;
-  deleteTeamTask: (taskId: string) => void;
-  addNotification: (notification: Notification) => void;
+  isLoading: boolean;
+  error: string | null;
+  fetchInitialData: (teamId?: string) => Promise<void>;
+  addTeam: (name: string) => Promise<void>;
+  addInvite: (teamId: string, email: string) => Promise<void>;
+  joinTeam: (teamId: string, code: string) => Promise<void>;
+  joinTeamByCode: (code: string) => Promise<void>;
+  leaveTeam: (teamId: string, userId: string) => Promise<void>;
+  addTeamTask: (
+    teamId: string,
+    task: Partial<ITask>,
+    creatorId: string
+  ) => Promise<void>;
+  updateTeamTask: (
+    teamId: string,
+    taskId: string,
+    updates: Partial<ITask>
+  ) => Promise<void>;
+  deleteTeamTask: (teamId: string, taskId: string) => Promise<void>;
+  addNotification: (teamId: string, message: string) => Promise<void>;
 }
 
-const useTeamStore = create<TeamState>((set) => ({
-  teams: [
-    {
-      id: "team1",
-      name: "Project Alpha",
-      creatorId: "user1",
-      members: ["user1", "user2", "user3"],
-      inviteCodes: [
-        {
-          code: "abc123",
-          email: "mike@example.com",
-          expiresAt: "2025-05-22T12:00:00Z",
-        },
-      ],
-    },
-    {
-      id: "team2",
-      name: "Marketing Campaign",
-      creatorId: "user2",
-      members: ["user2", "user4"],
-      inviteCodes: [],
-    },
-  ],
-  users: [
-    { id: "user1", username: "Alice", email: "alice@example.com", teamIds: ["team1"] },
-    { id: "user2", username: "Bob", email: "bob@example.com", teamIds: ["team1", "team2"] },
-    { id: "user3", username: "Jane", email: "jane@example.com", teamIds: ["team1"] },
-    { id: "user4", username: "Mike", email: "mike@example.com", teamIds: ["team2"] },
-  ],
-  teamTasks: [
-    {
-      id: "task1",
-      title: "Design Homepage",
-      description: "Create wireframes for new homepage",
-      status: "todo",
-      dueDate: "2025-05-25",
-      teamId: "team1",
-      assigneeId: "user2",
-      creatorId: "user1",
-      userId: "user1",
-      isStarred: false,
-      taskListId: "",
-    },
-    {
-      id: "task2",
-      title: "Write Blog Post",
-      description: "",
-      status: "done",
-      dueDate: "2025-05-20",
-      teamId: "team1",
-      assigneeId: null,
-      creatorId: "user3",
-      userId: "user3",
-      isStarred: false,
-      taskListId: "",
-    },
-  ],
-  notifications: [
-    {
-      id: "notif1",
-      message: "Alice created task: Design Homepage",
-      teamId: "team1",
-      timestamp: "2025-05-21T17:00:00Z",
-    },
-    {
-      id: "notif2",
-      message: "Jane completed task: Write Blog Post",
-      teamId: "team1",
-      timestamp: "2025-05-21T17:05:00Z",
-    },
-  ],
-  addTeam: (team) => set((state) => ({ teams: [...state.teams, team] })),
-  addInvite: (teamId, invite) =>
-    set((state) => ({
-      teams: state.teams.map((team) =>
-        team.id === teamId
-          ? { ...team, inviteCodes: [...team.inviteCodes, invite] }
-          : team
-      ),
-    })),
-  joinTeam: (teamId, userId) =>
-    set((state) => ({
-      teams: state.teams.map((team) =>
-        team.id === teamId
-          ? { ...team, members: [...team.members, userId] }
-          : team
-      ),
-      users: state.users.map((user) =>
-        user.id === userId
-          ? { ...user, teamIds: [...(user.teamIds || []), teamId] }
-          : user
-      ),
-    })),
-  leaveTeam: (teamId, userId) =>
-    set((state) => ({
-      teams: state.teams.map((team) =>
-        team.id === teamId
-          ? { ...team, members: team.members.filter((id) => id !== userId) }
-          : team
-      ),
-      users: state.users.map((user) =>
-        user.id === userId
-          ? { ...user, teamIds: (user.teamIds || []).filter((id) => id !== teamId) }
-          : user
-      ),
-      teamTasks: state.teamTasks.map((task) =>
-        task.teamId === teamId && task.assigneeId === userId
-          ? { ...task, assigneeId: null }
-          : task
-      ),
-    })),
-  addTeamTask: (task) =>
-    set((state) => ({ teamTasks: [...state.teamTasks, task] })),
-  updateTeamTask: (taskId, updates) =>
-    set((state) => ({
-      teamTasks: state.teamTasks.map((task) =>
-        task.id === taskId ? { ...task, ...updates } : task
-      ),
-    })),
-  deleteTeamTask: (taskId) =>
-    set((state) => ({
-      teamTasks: state.teamTasks.filter((task) => task.id !== taskId),
-    })),
-  addNotification: (notification) =>
-    set((state) => ({
-      notifications: [...state.notifications, notification],
-    })),
+const useTeamStore = create<TeamState>((set, get) => ({
+  teams: [],
+  users: [],
+  teamTasks: [],
+  notifications: [],
+  isLoading: false,
+  error: null,
+
+  fetchInitialData: async (teamId?: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      const [teamsResponse, usersResponse] = await Promise.all([
+        teamService.getTeams(),
+        userService.getUsers(),
+      ]);
+      const teams = teamsResponse.data;
+      const users = usersResponse.data;
+
+      let teamTasks: ITask[] = [];
+      let notifications: Notification[] = [];
+
+      if (teamId) {
+        const [tasksResponse, notificationsResponse] = await Promise.all([
+          teamService.getTeamTasks(teamId),
+          teamService.getNotifications(teamId),
+        ]);
+        teamTasks = tasksResponse.data;
+        notifications = notificationsResponse.data;
+      }
+
+      set({
+        teams,
+        users,
+        teamTasks,
+        notifications,
+        isLoading: false,
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to fetch team data";
+      set({ error: message, isLoading: false });
+      toast.error(message, { toastId: "fetch-error" });
+    }
+  },
+
+  addTeam: async (name: string) => {
+    try {
+      const response = await teamService.createTeam(name);
+      set((state) => ({ teams: [...state.teams, response.data] }));
+      toast.success("Team created successfully");
+    } catch (error) {
+      toast.error("Failed to create team", { toastId: "create-team-error" });
+    }
+  },
+
+  addInvite: async (teamId: string, email: string) => {
+    try {
+      const response = await teamService.createInvite(teamId, email);
+      set((state) => ({
+        teams: state.teams.map((team) =>
+          team.id === teamId
+            ? {
+                ...team,
+                inviteCodes: [
+                  ...team.inviteCodes,
+                  {
+                    email: response.data.email,
+                    expiresAt: response.data.expiresAt,
+                  },
+                ],
+              }
+            : team
+        ),
+      }));
+      await get().addNotification(teamId, `Invited ${email} to the team`);
+      toast.success("Invite sent");
+    } catch (error) {
+      toast.error("Failed to send invite", { toastId: "invite-error" });
+    }
+  },
+
+  joinTeam: async (teamId: string, code: string) => {
+    try {
+      const response = await teamService.joinTeam(teamId, code);
+      set((state) => ({
+        teams: state.teams.map((team) =>
+          team.id === teamId ? response.data : team
+        ),
+        users: state.users.map((user) =>
+          user.id === response.data.members[response.data.members.length - 1]
+            ? { ...user, teamIds: [...(user.teamIds || []), teamId] }
+            : user
+        ),
+      }));
+      await get().addNotification(teamId, `A user joined the team`);
+      toast.success(`Joined team: ${response.data.name}`);
+    } catch (error) {
+      console.error("joinTeam error:", error);
+      toast.error("Failed to join team", { toastId: "join-error" });
+      throw error;
+    }
+  },
+
+  joinTeamByCode: async (code: string) => {
+    try {
+      const response = await teamService.joinTeamByCode(code);
+      const teamId = response.data.id;
+      set((state) => ({
+        teams: state.teams.some((team) => team.id === teamId)
+          ? state.teams.map((team) =>
+              team.id === teamId ? response.data : team
+            )
+          : [...state.teams, response.data],
+        users: state.users.map((user) =>
+          user.id === response.data.members[response.data.members.length - 1]
+            ? { ...user, teamIds: [...(user.teamIds || []), teamId] }
+            : user
+        ),
+      }));
+      await get().addNotification(teamId, `A user joined the team`);
+      toast.success(`Joined team: ${response.data.name}`);
+    } catch (error) {
+      console.error("joinTeamByCode error:", error);
+      toast.error("Failed to join team", { toastId: "join-error" });
+      throw error;
+    }
+  },
+
+  leaveTeam: async (teamId: string, userId: string) => {
+    try {
+      await teamService.leaveTeam(teamId, userId);
+      set((state) => ({
+        teams: state.teams.map((team) =>
+          team.id === teamId
+            ? { ...team, members: team.members.filter((id) => id !== userId) }
+            : team
+        ),
+        users: state.users.map((user) =>
+          user.id === userId
+            ? {
+                ...user,
+                teamIds: (user.teamIds || []).filter((id) => id !== teamId),
+              }
+            : user
+        ),
+        teamTasks: state.teamTasks.map((task) =>
+          task.teamId === teamId && task.assigneeId === userId
+            ? { ...task, assigneeId: null }
+            : task
+        ),
+      }));
+      await get().addNotification(teamId, `A user left the team`);
+      toast.success("You have left the team");
+    } catch (error) {
+      toast.error("Failed to leave team", { toastId: "leave-error" });
+    }
+  },
+
+  addTeamTask: async (
+    teamId: string,
+    task: Partial<ITask>,
+    creatorId: string
+  ) => {
+    try {
+      const response = await teamService.createTeamTask(teamId, {
+        ...task,
+        creatorId,
+        userId: creatorId,
+      });
+      set((state) => ({
+        teamTasks: [...state.teamTasks, response.data],
+      }));
+      await get().addNotification(
+        teamId,
+        `Created task: ${response.data.title}`
+      );
+      toast.success("Task created");
+    } catch (error) {
+      toast.error("Failed to create task", { toastId: "create-task-error" });
+    }
+  },
+
+  updateTeamTask: async (
+    teamId: string,
+    taskId: string,
+    updates: Partial<ITask>
+  ) => {
+    try {
+      const response = await teamService.updateTeamTask(
+        teamId,
+        taskId,
+        updates
+      );
+      set((state) => ({
+        teamTasks: state.teamTasks.map((task) =>
+          task.id === taskId ? response.data : task
+        ),
+      }));
+      await get().addNotification(
+        teamId,
+        `Updated task: ${response.data.title}`
+      );
+      toast.success("Task updated");
+    } catch (error) {
+      toast.error("Failed to update task", { toastId: "update-task-error" });
+    }
+  },
+
+  deleteTeamTask: async (teamId: string, taskId: string) => {
+    try {
+      await teamService.deleteTeamTask(teamId, taskId);
+      set((state) => ({
+        teamTasks: state.teamTasks.filter((task) => task.id !== taskId),
+      }));
+      await get().addNotification(teamId, `Deleted a task`);
+      toast.success("Task deleted");
+    } catch (error) {
+      toast.error("Failed to delete task", { toastId: "delete-task-error" });
+    }
+  },
+
+  addNotification: async (teamId: string, message: string) => {
+    try {
+      const notification: Notification = {
+        id: `notif-${Date.now()}`,
+        message,
+        teamId,
+        timestamp: new Date().toISOString(),
+      };
+      set((state) => ({
+        notifications: [...state.notifications, notification],
+      }));
+    } catch (error) {
+      toast.error("Failed to add notification", {
+        toastId: "notification-error",
+      });
+    }
+  },
 }));
 
 export default useTeamStore;

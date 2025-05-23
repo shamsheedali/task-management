@@ -35,11 +35,6 @@ export default class TeamController {
     this._notificationService = notificationService;
   }
 
-  /**
-   * Creates a new team for the authenticated user.
-   * @param req - Request with team name and authenticated user ID.
-   * @param res - Response with created team data.
-   */
   async createTeam(req: AuthRequest, res: Response) {
     const userId = req.user?.id;
     if (!userId) {
@@ -61,11 +56,6 @@ export default class TeamController {
     });
   }
 
-  /**
-   * Retrieves all teams for the authenticated user.
-   * @param req - Request with authenticated user ID.
-   * @param res - Response with user's teams.
-   */
   async getUserTeams(req: AuthRequest, res: Response) {
     const userId = req.user?.id;
     if (!userId) {
@@ -86,11 +76,6 @@ export default class TeamController {
     });
   }
 
-  /**
-   * Retrieves a team by ID, ensuring the user is a member.
-   * @param req - Request with team ID and authenticated user ID.
-   * @param res - Response with team data.
-   */
   async getTeam(req: AuthRequest, res: Response) {
     const userId = req.user?.id;
     if (!userId) {
@@ -110,11 +95,6 @@ export default class TeamController {
     });
   }
 
-  /**
-   * Generates an invite for a team and sends it via email.
-   * @param req - Request with team ID, email to invite, and authenticated user ID.
-   * @param res - Response with invite data.
-   */
   async createInvite(req: AuthRequest, res: Response) {
     const userId = req.user?.id;
     if (!userId) {
@@ -131,20 +111,14 @@ export default class TeamController {
     await this._mailService.sendInviteEmail(email, invite.code, teamId);
     res.status(HttpStatus.CREATED).json({
       status: 'success',
-      message: 'Invite created successfully',
+      message: 'Invite sent successfully',
       data: {
-        code: invite.code,
         email: invite.email,
         expiresAt: invite.expiresAt,
       },
     });
   }
 
-  /**
-   * Allows a user to join a team using an invite code.
-   * @param req - Request with team ID, invite code, and authenticated user ID.
-   * @param res - Response with updated team data.
-   */
   async joinTeam(req: AuthRequest, res: Response) {
     const userId = req.user?.id;
     if (!userId) {
@@ -171,11 +145,31 @@ export default class TeamController {
     });
   }
 
-  /**
-   * Removes a user from a team (Leave Team feature).
-   * @param req - Request with team ID, user ID to remove, and authenticated user ID.
-   * @param res - Response with success message.
-   */
+  async joinTeamByCode(req: AuthRequest, res: Response) {
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new AppError(
+        ResponseMessages.UNAUTHORIZED,
+        HttpStatus.UNAUTHORIZED
+      );
+    }
+
+    const { code }: JoinTeamInput = req.body;
+    const team = await this._teamService.joinTeamByCode(userId, code);
+    await this._userService.addTeamToUser(userId, team._id.toString());
+
+    await this._notificationService.createNotification(
+      team._id.toString(),
+      `User ${req.user?.email} joined the team`
+    );
+    const teamDTO: TeamDTO = toTeamDTO(team, req.user?.email);
+    res.status(HttpStatus.OK).json({
+      status: 'success',
+      message: 'Joined team successfully',
+      data: teamDTO,
+    });
+  }
+
   async leaveTeam(req: AuthRequest, res: Response) {
     const userId = req.user?.id;
     if (!userId) {

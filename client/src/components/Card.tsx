@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 import taskService from "../services/taskService";
 import useTaskStore from "../store/taskStore";
 import useTeamStore from "../store/teamStore";
+import useAuthStore from "../store/authStore"; // Import useAuthStore
 import type { ITask, ApiResponse } from "../types";
 
 interface TaskCardProps {
@@ -35,7 +36,7 @@ const Card: React.FC<TaskCardProps> = ({
     removeStarredTask,
   } = useTaskStore();
   const { users, addNotification } = useTeamStore();
-  const currentUser = { id: "user1" }; // Dummy current user
+  const { user } = useAuthStore(); // Get authenticated user
 
   const subtasks = allTasks.filter((t) => t.parentTaskId === task.id);
   const completed = task.status === "done";
@@ -45,6 +46,14 @@ const Card: React.FC<TaskCardProps> = ({
   const creator = task.teamId
     ? users.find((u) => u.id === task.creatorId) || null
     : null;
+
+  // Log for debugging
+  console.log("Card task:", {
+    taskId: task.id,
+    title: task.title,
+    creatorId: task.creatorId,
+    currentUserId: user?.id,
+  });
 
   const handleToggleTask = async () => {
     try {
@@ -61,15 +70,13 @@ const Card: React.FC<TaskCardProps> = ({
           addNotification({
             id: `notif-${Date.now()}`,
             message: `${
-              currentUser.id === "user1" ? "You" : "User"
+              user?.id ? "You" : "User"
             } marked task as ${newStatus}: ${task.title}`,
             teamId: task.teamId,
             timestamp: new Date().toISOString(),
           });
           toast.info(
-            `${
-              currentUser.id === "user1" ? "You" : "User"
-            } marked task as ${newStatus}`
+            `${user?.id ? "You" : "User"} marked task as ${newStatus}`
           );
         }
       } else {
@@ -133,8 +140,8 @@ const Card: React.FC<TaskCardProps> = ({
         isStarred: false,
         parentTaskId: task.id,
         teamId: task.teamId,
-        creatorId: currentUser.id,
-        userId: currentUser.id, // Add userId for ITask
+        creatorId: user?.id,
+        userId: user?.id, // Use authenticated user ID
       };
       let res: ApiResponse<ITask>;
       if (task.teamId) {
@@ -152,7 +159,7 @@ const Card: React.FC<TaskCardProps> = ({
           addNotification({
             id: `notif-${Date.now()}`,
             message: `${
-              currentUser.id === "user1" ? "You" : "User"
+              user?.id ? "You" : "User"
             } created subtask: ${subtaskTitle}`,
             teamId: task.teamId,
             timestamp: new Date().toISOString(),
@@ -172,27 +179,25 @@ const Card: React.FC<TaskCardProps> = ({
   };
 
   const handleDeleteTask = async () => {
-    if (task.teamId && task.creatorId !== currentUser.id) {
+    if (!user?.id) {
+      toast.error("You must be logged in to delete a task");
+      return;
+    }
+    // Optionally remove creator check if backend allows any team member to delete
+    if (task.teamId && task.creatorId !== user.id) {
       toast.error("Only the task creator can delete this task");
       return;
     }
     try {
+      console.log("Calling onDeleteTask for task:", task.id);
+      onDeleteTask(task.id);
       if (task.teamId) {
-        onDeleteTask(task.id);
-        if (task.teamId) {
-          addNotification({
-            id: `notif-${Date.now()}`,
-            message: `${
-              currentUser.id === "user1" ? "You" : "User"
-            } deleted task: ${task.title}`,
-            teamId: task.teamId,
-            timestamp: new Date().toISOString(),
-          });
-          toast.success("Task deleted");
-        }
-      } else {
-        await taskService.deleteTask(task.taskListId, task.id);
-        onDeleteTask(task.id);
+        addNotification({
+          id: `notif-${Date.now()}`,
+          message: `${user?.id ? "You" : "User"} deleted task: ${task.title}`,
+          teamId: task.teamId,
+          timestamp: new Date().toISOString(),
+        });
       }
     } catch (err: unknown) {
       console.error("Failed to delete task:", err);

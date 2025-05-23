@@ -139,6 +139,7 @@ export default class TeamTaskService
       );
     }
 
+    // Only check for duplicate title if a new title is provided and it's different
     if (title && title !== task.title) {
       const existingTask = await this._teamTaskRepository.findOne({
         title,
@@ -153,14 +154,18 @@ export default class TeamTaskService
       }
     }
 
-    const updateData: Partial<ITeamTask> = {
-      title: title || task.title,
-      description: description !== undefined ? description : task.description,
-      status: status || task.status,
-      isStarred: isStarred !== undefined ? isStarred : task.isStarred,
-      dueDate: dueDate !== undefined ? dueDate : task.dueDate,
-      assigneeId: assigneeId !== undefined ? assigneeId : task.assigneeId,
-    };
+    const updateData: Partial<ITeamTask> = {};
+    if (title && title !== task.title) updateData.title = title;
+    if (description !== undefined) updateData.description = description;
+    if (status !== undefined) updateData.status = status;
+    if (isStarred !== undefined) updateData.isStarred = isStarred;
+    if (dueDate !== undefined) updateData.dueDate = dueDate;
+    if (assigneeId !== undefined) updateData.assigneeId = assigneeId;
+
+    // Only update if there are changes
+    if (Object.keys(updateData).length === 0) {
+      return task; // No changes, return original task
+    }
 
     const updatedTask = await super.update(taskId, updateData);
     if (!updatedTask) {

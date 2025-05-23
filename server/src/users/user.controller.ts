@@ -22,11 +22,6 @@ export default class UserController {
     this._tokenService = tokenService;
   }
 
-  /**
-   * Registers a new user and sends OTP for verification.
-   * @param req - Request with RegisterInput (username, email, password).
-   * @param res - Response with success message.
-   */
   async register(req: AuthRequest, res: Response) {
     await this._userService.initiateRegistration(req.body);
     res.status(HttpStatus.OK).json({
@@ -35,11 +30,6 @@ export default class UserController {
     });
   }
 
-  /**
-   * Verifies OTP and completes user registration.
-   * @param req - Request with email and OTP.
-   * @param res - Response with user data, access token, and refresh token.
-   */
   async verifyAndRegister(req: AuthRequest, res: Response) {
     const user = await this._userService.verifyAndRegister(
       req.body.email,
@@ -60,11 +50,6 @@ export default class UserController {
     });
   }
 
-  /**
-   * Logs in a user with email and password.
-   * @param req - Request with LoginInput (email, password).
-   * @param res - Response with user data, access token, and refresh token.
-   */
   async login(req: AuthRequest, res: Response) {
     const user = await this._userService.loginUser(req.body);
     const accessToken = await this._tokenService.generateAccessToken(user._id);
@@ -82,11 +67,6 @@ export default class UserController {
     });
   }
 
-  /**
-   * Retrieves the authenticated user's profile.
-   * @param req - Request with authenticated user ID.
-   * @param res - Response with user data.
-   */
   async getProfile(req: AuthRequest, res: Response) {
     const userId = req.user?.id;
     if (!userId) {
@@ -105,11 +85,16 @@ export default class UserController {
     });
   }
 
-  /**
-   * Refreshes access token using refresh token.
-   * @param req - Request with refresh token in cookies.
-   * @param res - Response with new access token and refresh token.
-   */
+  async getUsers(req: AuthRequest, res: Response) {
+    const users = await this._userService.findAll();
+    const usersDTO: UserResponseDTO[] = users.map(toUserResponseDTO);
+    res.status(HttpStatus.OK).json({
+      status: 'success',
+      message: 'Users retrieved successfully',
+      data: usersDTO,
+    });
+  }
+
   async refreshToken(req: AuthRequest, res: Response) {
     const refreshToken = req.cookies.refreshToken;
     if (!refreshToken) {

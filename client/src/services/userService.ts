@@ -38,6 +38,11 @@ const userService = {
     }
     throw new Error("Otp not verified");
   },
+
+  getUsers: async (): Promise<ApiResponse<User[]>> => {
+    const response = await api.get("/users");
+    return response.data;
+  },
 };
 
 export default userService;

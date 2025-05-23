@@ -115,8 +115,6 @@ router.post(
 );
 
 /**
-
-
  * @swagger
  * /api/users/me:
  *   get:
@@ -142,6 +140,37 @@ router.get(
   '/me',
   authMiddleware,
   asyncWrap(userController.getProfile.bind(userController))
+);
+
+/**
+ * @swagger
+ * /api/users:
+ *   get:
+ *     summary: Get all users
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Users retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status: { type: string, example: 'success' }
+ *                 message: { type: string, example: 'Users retrieved successfully' }
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/UserResponse'
+ *       401:
+ *         description: Unauthorized or invalid token
+ */
+router.get(
+  '/',
+  authMiddleware,
+  asyncWrap(userController.getUsers.bind(userController))
 );
 
 /**

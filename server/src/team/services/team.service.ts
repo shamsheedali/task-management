@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify';
 import TYPES from '../../types/inversify.types';
-import { ITeam } from '../models/team.model';
+import { ITeam, IInvite } from '../models/team.model';
 import { IUserRepository } from '../../users/interfaces/user-repository.interface';
 import { AppError } from '../../utils/appError';
 import ResponseMessages from '../../common/constants/response';
@@ -109,7 +109,9 @@ export default class TeamService
       $push: { inviteCodes: invite },
     });
 
-    logger.info(`Invite created for team: ${teamId}, email: ${email}`);
+    logger.info(
+      `Invite created for team: ${teamId}, email: ${email}, CODE: ${code}`
+    );
     return invite;
   }
 
@@ -124,10 +126,22 @@ export default class TeamService
       throw new AppError(ResponseMessages.NOT_FOUND, HttpStatus.NOT_FOUND);
     }
 
+    logger.info('JoinTeam Input:', {
+      teamId,
+      userId,
+      code,
+      userEmail: user.email,
+    });
+    logger.info('Team Invite Codes:', team.inviteCodes);
+
     const invite = team.inviteCodes.find(
-      inv => inv.code === code && inv.expiresAt > new Date()
+      (inv: IInvite) => inv.code === code && inv.expiresAt > new Date()
     );
-    if (!invite || invite.email !== user.email) {
+    if (!invite) {
+      logger.info('Invite Validation Failed:', {
+        providedCode: code,
+        inviteExists: !!invite,
+      });
       throw new AppError(
         'Invalid or expired invite code',
         HttpStatus.BAD_REQUEST
@@ -152,6 +166,41 @@ export default class TeamService
 
     logger.info(`User ${userId} joined team: ${teamId}`);
     return updatedTeam;
+  }
+
+  async joinTeamByCode(userId: string, code: string): Promise<ITeam> {
+    const user = await this._userRepository.findById(userId);
+    if (!user) {
+      throw new AppError(ResponseMessages.NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+
+    const team = await this._teamRepository.findOne({
+      'inviteCodes.code': code,
+      'inviteCodes.expiresAt': { $gt: new Date() },
+    });
+    if (!team) {
+      logger.info('JoinTeamByCode Failed:', {
+        providedCode: code,
+        userId,
+        userEmail: user.email,
+      });
+      throw new AppError(
+        'Invalid or expired invite code',
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    const invite = team.inviteCodes.find(
+      (inv: IInvite) => inv.code === code && inv.expiresAt > new Date()
+    );
+    if (!invite || invite.email !== user.email) {
+      throw new AppError(
+        'Invite code is not valid for this user',
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    return this.joinTeam(team._id, userId, code);
   }
 
   async leaveTeam(teamId: string, userId: string): Promise<void> {

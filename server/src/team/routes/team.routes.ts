@@ -272,6 +272,57 @@ router.post(
 
 /**
  * @swagger
+ * /api/teams/join-by-code:
+ *   post:
+ *     summary: Join a team using an invite code without specifying team ID
+ *     tags: [Teams]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - code
+ *             properties:
+ *               code:
+ *                 type: string
+ *                 example: "inv-1234567890"
+ *     responses:
+ *       200:
+ *         description: Joined team successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status: { type: string, example: 'success' }
+ *                 message: { type: string, example: 'Joined team successfully' }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id: { type: string, example: '6825e026b45def4c90932199' }
+ *                     name: { type: string, example: 'Project Alpha' }
+ *                     creatorId: { type: string, example: '6825e026b45def4c90932199' }
+ *                     members: { type: array, items: { type: string }, example: ['6825e026b45def4c90932199'] }
+ *                     inviteCodes: { type: array, items: { type: object }, example: [] }
+ *                     createdAt: { type: string, format: date-time }
+ *       401:
+ *         description: Unauthorized or invalid token
+ *       400:
+ *         description: Invalid or expired invite code
+ */
+router.post(
+  '/join-by-code',
+  authMiddleware,
+  validate(joinTeamSchema),
+  asyncWrap(teamController.joinTeamByCode.bind(teamController))
+);
+
+/**
+ * @swagger
  * /api/teams/{teamId}/members/{userId}:
  *   delete:
  *     summary: Leave a team

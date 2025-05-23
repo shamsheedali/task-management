@@ -12,6 +12,9 @@ import cookieParser from 'cookie-parser';
 import userRoutes from './users/user.route';
 import taskListRoutes from './tasks/routes/taskList.route';
 import taskRoutes from './tasks/routes/task.routes';
+import teamRoutes from './team/routes/team.routes';
+import teamTaskRoutes from './team/routes/teamTask.routes';
+import notificationRoutes from './team/routes/notification.routes';
 
 const app: Express = express();
 
@@ -32,6 +35,9 @@ app.use(morgan('combined', { stream: morganStream }));
 app.use('/api/users', userRoutes);
 app.use('/api/tasklist', taskListRoutes);
 app.use('/api/tasklist', taskRoutes);
+app.use('/api/teams', teamRoutes);
+app.use('/api/teams', teamTaskRoutes);
+app.use('/api/teams', notificationRoutes);
 
 // Swagger Documentation
 app.use('/api-docs', swaggerServe, swaggerSetup);
