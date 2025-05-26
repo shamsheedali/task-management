@@ -15,8 +15,6 @@ const startServer = async () => {
   try {
     await connectDB();
     await connectRedis();
-
-    // Initialize SocketService
     const socketService = container.get<SocketService>(TYPES.SocketService);
     socketService.initialize(server);
 
