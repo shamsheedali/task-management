@@ -3,12 +3,14 @@ import type { Socket } from "socket.io-client";
 
 let socket: Socket | null = null;
 
+const SOCKET_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
 export const connectSocket = (): void => {
   if (socket) return;
-  const token = localStorage.getItem("userToken"); // Get token from localStorage
-  socket = io("http://localhost:5000", {
+  const token = localStorage.getItem("userToken");
+  socket = io(SOCKET_URL, {
     transports: ["websocket"],
-    auth: { token: token ? `Bearer ${token}` : "" }, // Send Bearer token
+    auth: { token: token ? `Bearer ${token}` : "" },
   });
 };
 
