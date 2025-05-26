@@ -6,7 +6,7 @@ import { AppError } from './utils/appError';
 import ResponseMessages from './common/constants/response';
 import { errorMiddleware } from './middleware/error.middleware';
 import helmet from 'helmet';
-import { limiter } from './middleware/rateLimit.middleware';
+// import { limiter } from './middleware/rateLimit.middleware';
 import { swaggerServe, swaggerSetup } from './config/swagger';
 import cookieParser from 'cookie-parser';
 import userRoutes from './users/user.route';
@@ -26,7 +26,7 @@ const morganStream = {
 // Middleware
 app.use(cors());
 app.use(helmet());
-app.use(limiter);
+// app.use(limiter);
 app.use(express.json());
 app.use(cookieParser());
 app.use(morgan('combined', { stream: morganStream }));

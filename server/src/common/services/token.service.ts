@@ -46,6 +46,18 @@ export default class TokenService implements ITokenService {
     });
   }
 
+  verifyAccessToken(token: string): { id: string; email: string } {
+    try {
+      return jwt.verify(token, env.JWT_SECRET) as { id: string; email: string };
+    } catch (error) {
+      logger.error('Access token verification failed:', error);
+      throw new AppError(
+        ResponseMessages.INVALID_TOKEN,
+        HttpStatus.UNAUTHORIZED
+      );
+    }
+  }
+
   verifyRefreshToken(refreshToken: string): { id: string; email: string } {
     try {
       return jwt.verify(refreshToken, env.REFRESH_JWT_SECRET) as {

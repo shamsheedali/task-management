@@ -27,6 +27,7 @@ import TaskRepository from '../tasks/repositories/task.repository';
 import TeamRepository from '../team/repositories/team.repository';
 import TeamTaskRepository from '../team/repositories/teamTask.repository';
 import NotificationRepository from '../team/repositories/notification.repository';
+import { SocketService } from '../socket/socket.service';
 
 const container = new Container();
 
@@ -98,6 +99,10 @@ container
 container
   .bind<NotificationService>(TYPES.NotificationService)
   .to(NotificationService)
+  .inSingletonScope();
+container
+  .bind<SocketService>(TYPES.SocketService)
+  .to(SocketService)
   .inSingletonScope();
 
 // Bind Repositories

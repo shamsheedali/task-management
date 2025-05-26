@@ -4,7 +4,7 @@ import { toast } from "react-toastify";
 import taskService from "../services/taskService";
 import useTaskStore from "../store/taskStore";
 import useTeamStore from "../store/teamStore";
-import useAuthStore from "../store/authStore"; // Import useAuthStore
+import useAuthStore from "../store/authStore";
 import type { ITask, ApiResponse } from "../types";
 
 interface TaskCardProps {
@@ -46,14 +46,6 @@ const Card: React.FC<TaskCardProps> = ({
   const creator = task.teamId
     ? users.find((u) => u.id === task.creatorId) || null
     : null;
-
-  // Log for debugging
-  console.log("Card task:", {
-    taskId: task.id,
-    title: task.title,
-    creatorId: task.creatorId,
-    currentUserId: user?.id,
-  });
 
   const handleToggleTask = async () => {
     try {
@@ -189,7 +181,6 @@ const Card: React.FC<TaskCardProps> = ({
       return;
     }
     try {
-      console.log("Calling onDeleteTask for task:", task.id);
       onDeleteTask(task.id);
       if (task.teamId) {
         addNotification({

@@ -24,10 +24,8 @@ const teamService = {
     teamId: string,
     code: string
   ): Promise<ApiResponse<Team>> => {
-    console.log("Sending joinTeam request:", { teamId, code });
     try {
       const response = await api.post(`/teams/${teamId}/join`, { code });
-      console.log("joinTeam response:", response.data);
       return response.data;
     } catch (error) {
       console.error("joinTeam error:", error);
@@ -36,10 +34,8 @@ const teamService = {
   },
 
   joinTeamByCode: async (code: string): Promise<ApiResponse<Team>> => {
-    console.log("Sending joinTeamByCode request:", { code });
     try {
       const response = await api.post(`/teams/join-by-code`, { code });
-      console.log("joinTeamByCode response:", response.data);
       return response.data;
     } catch (error) {
       console.error("joinTeamByCode error:", error);
@@ -51,7 +47,7 @@ const teamService = {
     teamId: string,
     userId: string
   ): Promise<ApiResponse<null>> => {
-    const response = await api.delete(`/teams/${teamId}/leave/${userId}`);
+    const response = await api.delete(`/teams/${teamId}/members/${userId}`);
     return response.data;
   },
 

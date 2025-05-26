@@ -41,8 +41,6 @@ const Team: React.FC = () => {
   const leaveModalRef = useRef<HTMLDialogElement>(null);
 
   const currentUserId = user?.id;
-  console.log("Team ID from useParams:", teamId);
-  console.log("Current User ID:", currentUserId);
 
   const team = teams.find((t) => t.id === teamId);
   const tasks = teamTasks.filter((t) => t.teamId === teamId);
@@ -52,7 +50,6 @@ const Team: React.FC = () => {
 
   useEffect(() => {
     if (teamId && currentUserId) {
-      console.log("Fetching initial data for team:", teamId);
       fetchInitialData(teamId);
     }
   }, [teamId, currentUserId, fetchInitialData]);
@@ -77,8 +74,6 @@ const Team: React.FC = () => {
       taskListId: "",
     };
 
-    console.log("handleCreateOrUpdateTask:", { editingTaskId, taskData });
-
     if (editingTaskId) {
       updateTeamTask(teamId!, editingTaskId, taskData);
     } else {
@@ -89,7 +84,6 @@ const Team: React.FC = () => {
   };
 
   const handleEditTask = (task: ITask) => {
-    console.log("handleEditTask:", { taskId: task.id, title: task.title });
     setTaskTitle(task.title);
     setTaskDesc(task.description || "");
     setTaskStatus(task.status);
@@ -102,12 +96,10 @@ const Team: React.FC = () => {
   };
 
   const handleUpdateTask = (taskId: string, updatedTask: Partial<ITask>) => {
-    console.log("handleUpdateTask:", { taskId, updatedTask });
     updateTeamTask(teamId!, taskId, updatedTask);
   };
 
   const handleDeleteTask = (taskId: string) => {
-    console.log("handleDeleteTask called:", { teamId, taskId, currentUserId });
     if (!teamId) {
       console.error("teamId is undefined");
       toast.error("Team ID is missing", { toastId: "team-id-error" });
