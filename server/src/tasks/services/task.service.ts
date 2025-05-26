@@ -206,4 +206,59 @@ export default class TaskService
     );
     return tasks;
   }
+
+  async getTaskSummary(
+    userId: string
+  ): Promise<{ done: number; todo: number }> {
+    const tasks = await this._taskRepository.find({ userId });
+    const summary = tasks.reduce(
+      (acc, task) => {
+        if (task.status === 'done') acc.done += 1;
+        if (task.status === 'todo') acc.todo += 1;
+        return acc;
+      },
+      { done: 0, todo: 0 }
+    );
+    return summary;
+  }
+
+  async getTaskStats(
+    userId: string,
+    days: number
+  ): Promise<{ date: string; tasks: number }[]> {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - days);
+
+    const tasks = await this._taskRepository.find({
+      userId,
+      status: 'done',
+      updatedAt: { $gte: startDate, $lte: endDate },
+    });
+
+    // Group tasks by date
+    const statsMap: { [key: string]: number } = {};
+    for (
+      let d = new Date(startDate);
+      d <= endDate;
+      d.setDate(d.getDate() + 1)
+    ) {
+      const dateStr = d.toISOString().split('T')[0];
+      statsMap[dateStr] = 0;
+    }
+
+    tasks.forEach(task => {
+      const dateStr = task.updatedAt.toISOString().split('T')[0];
+      if (statsMap[dateStr] !== undefined) {
+        statsMap[dateStr] += 1;
+      }
+    });
+
+    const stats = Object.entries(statsMap).map(([date, tasks]) => ({
+      date,
+      tasks,
+    }));
+
+    return stats.sort((a, b) => a.date.localeCompare(b.date));
+  }
 }

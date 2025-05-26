@@ -12,6 +12,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Teams from "./pages/Teams";
 import Team from "./pages/Team";
 import JoinTeam from "./pages/JoinTeam";
+import Stats from "./pages/Stats";
 import { connectSocket, getSocket } from "./utils/socket";
 
 const queryClient = new QueryClient();
@@ -107,6 +108,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <JoinTeam />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/stats"
+            element={
+              <ProtectedRoute>
+                <Stats />
               </ProtectedRoute>
             }
           />

@@ -36,6 +36,20 @@ const taskService = {
     );
     return response.data;
   },
+
+  getTaskSummary: async (): Promise<
+    ApiResponse<{ done: number; todo: number }>
+  > => {
+    const response = await api.get("/tasklist/summary");
+    return response.data;
+  },
+
+  getTaskStats: async (
+    days: number = 7
+  ): Promise<ApiResponse<{ date: string; tasks: number }[]>> => {
+    const response = await api.get(`/tasklist/stats?days=${days}`);
+    return response.data;
+  },
 };
 
 export default taskService;
