@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { Trash2, CheckCircle, Star, PlusCircle, Edit } from "lucide-react";
+import { toast } from "react-toastify";
 import taskService from "../services/taskService";
 import useTaskStore from "../store/taskStore";
+import useTeamStore from "../store/teamStore";
 import type { ITask, ApiResponse } from "../types";
 
 interface TaskCardProps {
@@ -25,25 +27,58 @@ const Card: React.FC<TaskCardProps> = ({
 }) => {
   const [showSubtaskInput, setShowSubtaskInput] = useState(false);
   const [subtaskTitle, setSubtaskTitle] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const {
     addCompletedTask,
     removeCompletedTask,
     addStarredTask,
     removeStarredTask,
   } = useTaskStore();
+  const { users, addNotification } = useTeamStore();
+  const currentUser = { id: "user1" }; // Dummy current user
 
   const subtasks = allTasks.filter((t) => t.parentTaskId === task.id);
   const completed = task.status === "done";
+  const assignee = task.teamId
+    ? users.find((u) => u.id === task.assigneeId) || null
+    : null;
+  const creator = task.teamId
+    ? users.find((u) => u.id === task.creatorId) || null
+    : null;
 
   const handleToggleTask = async () => {
     try {
       const newStatus: "todo" | "done" = completed ? "todo" : "done";
       const updatedTask: Partial<ITask> = { status: newStatus };
-      const res: ApiResponse<ITask> = await taskService.updateTask(
-        task.taskListId,
-        task.id,
-        updatedTask
-      );
+      let res: ApiResponse<ITask>;
+      if (task.teamId) {
+        res = {
+          status: "success",
+          message: "",
+          data: { ...task, status: newStatus },
+        };
+        if (task.teamId) {
+          addNotification({
+            id: `notif-${Date.now()}`,
+            message: `${
+              currentUser.id === "user1" ? "You" : "User"
+            } marked task as ${newStatus}: ${task.title}`,
+            teamId: task.teamId,
+            timestamp: new Date().toISOString(),
+          });
+          toast.info(
+            `${
+              currentUser.id === "user1" ? "You" : "User"
+            } marked task as ${newStatus}`
+          );
+        }
+      } else {
+        res = await taskService.updateTask(
+          task.taskListId,
+          task.id,
+          updatedTask
+        );
+      }
       if (res.data.status === "done") {
         addCompletedTask(task.id);
       } else {
@@ -51,9 +86,9 @@ const Card: React.FC<TaskCardProps> = ({
       }
       setTasks((prev) => prev.map((t) => (t.id === task.id ? res.data : t)));
       onUpdateTask(res.data);
-      console.log(`Task marked as ${newStatus}:`, res.data);
     } catch (err: unknown) {
       console.error("Failed to toggle task status:", err);
+      toast.error("Failed to update task");
     }
   };
 
@@ -61,11 +96,20 @@ const Card: React.FC<TaskCardProps> = ({
     try {
       const newStarred = !starred;
       const updatedTask: Partial<ITask> = { isStarred: newStarred };
-      const res: ApiResponse<ITask> = await taskService.updateTask(
-        task.taskListId,
-        task.id,
-        updatedTask
-      );
+      let res: ApiResponse<ITask>;
+      if (task.teamId) {
+        res = {
+          status: "success",
+          message: "",
+          data: { ...task, isStarred: newStarred },
+        };
+      } else {
+        res = await taskService.updateTask(
+          task.taskListId,
+          task.id,
+          updatedTask
+        );
+      }
       if (newStarred) {
         addStarredTask(task.id);
       } else {
@@ -73,9 +117,9 @@ const Card: React.FC<TaskCardProps> = ({
       }
       setTasks((prev) => prev.map((t) => (t.id === task.id ? res.data : t)));
       onUpdateTask(res.data);
-      console.log(`Task starred: ${newStarred}`, res.data);
     } catch (err: unknown) {
       console.error("Failed to toggle star:", err);
+      toast.error("Failed to star task");
     }
   };
 
@@ -88,28 +132,73 @@ const Card: React.FC<TaskCardProps> = ({
         status: "todo",
         isStarred: false,
         parentTaskId: task.id,
+        teamId: task.teamId,
+        creatorId: currentUser.id,
+        userId: currentUser.id, // Add userId for ITask
       };
-      const res: ApiResponse<ITask> = await taskService.createTask(
-        task.taskListId,
-        subtaskData
-      );
+      let res: ApiResponse<ITask>;
+      if (task.teamId) {
+        res = {
+          status: "success",
+          message: "",
+          data: {
+            ...subtaskData,
+            id: `task-${Date.now()}`,
+            taskListId: task.taskListId,
+            dueDate: undefined,
+          } as ITask,
+        };
+        if (task.teamId) {
+          addNotification({
+            id: `notif-${Date.now()}`,
+            message: `${
+              currentUser.id === "user1" ? "You" : "User"
+            } created subtask: ${subtaskTitle}`,
+            teamId: task.teamId,
+            timestamp: new Date().toISOString(),
+          });
+          toast.success("Subtask created");
+        }
+      } else {
+        res = await taskService.createTask(task.taskListId, subtaskData);
+      }
       setTasks((prev) => [...prev, res.data]);
       setSubtaskTitle("");
       setShowSubtaskInput(false);
-      console.log(`Subtask created: ${res.data.id}`);
     } catch (err: unknown) {
       console.error("Failed to create subtask:", err);
+      toast.error("Failed to create subtask");
     }
   };
 
   const handleDeleteTask = async () => {
+    if (task.teamId && task.creatorId !== currentUser.id) {
+      toast.error("Only the task creator can delete this task");
+      return;
+    }
     try {
-      await taskService.deleteTask(task.taskListId, task.id);
-      onDeleteTask(task.id);
-      console.log(`Task deleted: ${task.id}`);
+      if (task.teamId) {
+        onDeleteTask(task.id);
+        if (task.teamId) {
+          addNotification({
+            id: `notif-${Date.now()}`,
+            message: `${
+              currentUser.id === "user1" ? "You" : "User"
+            } deleted task: ${task.title}`,
+            teamId: task.teamId,
+            timestamp: new Date().toISOString(),
+          });
+          toast.success("Task deleted");
+        }
+      } else {
+        await taskService.deleteTask(task.taskListId, task.id);
+        onDeleteTask(task.id);
+      }
     } catch (err: unknown) {
       console.error("Failed to delete task:", err);
+      toast.error("Failed to delete task");
     }
+    setShowDeleteConfirm(false);
   };
 
   return (
@@ -153,6 +242,18 @@ const Card: React.FC<TaskCardProps> = ({
               Due: {new Date(task.dueDate).toLocaleDateString()}
             </div>
           )}
+          {task.teamId && (
+            <div className="text-sm text-gray-500 mt-1">
+              {assignee
+                ? `Assigned to: ${assignee.username}`
+                : "Assigned to: Team"}
+            </div>
+          )}
+          {task.teamId && creator && (
+            <div className="text-sm text-gray-500 mt-1">
+              Created by: {creator.username}
+            </div>
+          )}
         </div>
 
         <button
@@ -171,7 +272,7 @@ const Card: React.FC<TaskCardProps> = ({
         </button>
         <button
           className="ml-2 text-danger-500 hover:bg-danger-100 rounded-full p-1 transition cursor-pointer"
-          onClick={handleDeleteTask}
+          onClick={() => setShowDeleteConfirm(true)}
           aria-label="Delete task"
         >
           <Trash2 size={22} />
@@ -225,6 +326,31 @@ const Card: React.FC<TaskCardProps> = ({
             </li>
           ))}
         </ul>
+      )}
+
+      {showDeleteConfirm && (
+        <div className="modal modal-open">
+          <div className="modal-box bg-card dark:bg-neutral-800 p-6 rounded-2xl shadow-xl">
+            <h3 className="font-bold text-lg">Confirm Delete</h3>
+            <p className="py-4">
+              Are you sure you want to delete "{task.title}"?
+            </p>
+            <div className="modal-action">
+              <button
+                className="btn btn-danger btn-sm"
+                onClick={handleDeleteTask}
+              >
+                Delete
+              </button>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
