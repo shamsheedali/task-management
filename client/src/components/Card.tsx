@@ -4,8 +4,9 @@ import { toast } from "react-toastify";
 import taskService from "../services/taskService";
 import useTaskStore from "../store/taskStore";
 import useTeamStore from "../store/teamStore";
-import useAuthStore from "../store/authStore"; // Import useAuthStore
+import useAuthStore from "../store/authStore";
 import type { ITask, ApiResponse } from "../types";
+import { getSocket } from "../utils/socket";
 
 interface TaskCardProps {
   task: ITask;
@@ -47,18 +48,11 @@ const Card: React.FC<TaskCardProps> = ({
     ? users.find((u) => u.id === task.creatorId) || null
     : null;
 
-  // Log for debugging
-  console.log("Card task:", {
-    taskId: task.id,
-    title: task.title,
-    creatorId: task.creatorId,
-    currentUserId: user?.id,
-  });
-
   const handleToggleTask = async () => {
     try {
       const newStatus: "todo" | "done" = completed ? "todo" : "done";
       const updatedTask: Partial<ITask> = { status: newStatus };
+
       let res: ApiResponse<ITask>;
       if (task.teamId) {
         res = {
@@ -66,6 +60,8 @@ const Card: React.FC<TaskCardProps> = ({
           message: "",
           data: { ...task, status: newStatus },
         };
+
+        // Add local notification
         if (task.teamId) {
           addNotification({
             id: `notif-${Date.now()}`,
@@ -75,9 +71,19 @@ const Card: React.FC<TaskCardProps> = ({
             teamId: task.teamId,
             timestamp: new Date().toISOString(),
           });
+
           toast.info(
             `${user?.id ? "You" : "User"} marked task as ${newStatus}`
           );
+
+          // Emit the socket event for others
+          const socket = getSocket();
+          socket?.emit("task:complete", {
+            teamId: task.teamId,
+            taskTitle: task.title,
+            completedBy: user?.username,
+            newStatus,
+          });
         }
       } else {
         res = await taskService.updateTask(
@@ -86,11 +92,13 @@ const Card: React.FC<TaskCardProps> = ({
           updatedTask
         );
       }
+
       if (res.data.status === "done") {
         addCompletedTask(task.id);
       } else {
         removeCompletedTask(task.id);
       }
+
       setTasks((prev) => prev.map((t) => (t.id === task.id ? res.data : t)));
       onUpdateTask(res.data);
     } catch (err: unknown) {
@@ -189,7 +197,6 @@ const Card: React.FC<TaskCardProps> = ({
       return;
     }
     try {
-      console.log("Calling onDeleteTask for task:", task.id);
       onDeleteTask(task.id);
       if (task.teamId) {
         addNotification({

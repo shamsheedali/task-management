@@ -22,6 +22,7 @@ const TYPES = {
   TeamService: Symbol.for('TeamService'),
   TeamTaskService: Symbol.for('TeamTaskService'),
   NotificationService: Symbol.for('NotificationService'),
+  SocketService: Symbol.for('SocketService'),
   // Repositories
   UserRepository: Symbol.for('UserRepository'),
   TaskListRepository: Symbol.for('TaskListRepository'),

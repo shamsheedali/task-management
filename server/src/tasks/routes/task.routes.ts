@@ -272,4 +272,58 @@ router.get(
   asyncWrap(taskController.getTasksByTaskListId.bind(taskController))
 );
 
+/**
+ * @swagger
+ * /api/tasks/summary:
+ *   get:
+ *     summary: Get summary of tasks (done vs todo) for a user
+ *     tags: [Tasks]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Task summary retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/TaskSummaryResponse'
+ *       401:
+ *         description: Unauthorized
+ */
+router.get(
+  '/summary',
+  authMiddleware,
+  asyncWrap(taskController.getTaskSummary.bind(taskController))
+);
+
+/**
+ * @swagger
+ * /api/tasks/stats:
+ *   get:
+ *     summary: Get task completion stats over time for a user
+ *     tags: [Tasks]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: days
+ *         schema:
+ *           type: integer
+ *           default: 7
+ *         description: Number of days to retrieve stats for
+ *     responses:
+ *       200:
+ *         description: Task stats retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/TaskStatsResponse'
+ *       401:
+ *         description: Unauthorized
+ */
+router.get(
+  '/stats',
+  authMiddleware,
+  asyncWrap(taskController.getTaskStats.bind(taskController))
+);
 export default router;

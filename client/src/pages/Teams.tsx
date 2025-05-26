@@ -1,12 +1,14 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Plus } from "lucide-react";
-import { toast } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import useTeamStore from "../store/teamStore";
 import useAuthStore from "../store/authStore";
 import TeamCard from "../components/TeamCard";
 import InputField from "../components/InputField";
 import Navbar from "../components/Navbar";
 import type { Team, Invite } from "../types";
+import { getSocket } from "../utils/socket";
 
 const Teams: React.FC = () => {
   const {
@@ -50,6 +52,16 @@ const Teams: React.FC = () => {
       setInviteCode("");
       inviteModalRef.current?.close();
       await fetchInitialData();
+
+      // Emit socket event after successful join
+      const socket = getSocket();
+      if (socket && user) {
+        socket.emit("TEAM_USER_JOINED", {
+          inviteCode: inviteCode,
+          userId: user.id,
+          username: user.username || user.email,
+        });
+      }
     } catch (error) {
       console.error("Error joining team:", error);
       toast.error("Failed to join team. Invalid invite code.", {
@@ -57,6 +69,22 @@ const Teams: React.FC = () => {
       });
     }
   };
+
+  if (!user || !currentUserId) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-bg via-primary-50 to-secondary-500/10 flex flex-col">
+        <Navbar
+          isSidebarOpen={isSidebarOpen}
+          setIsSidebarOpen={setIsSidebarOpen}
+        />
+        <div className="pt-28 p-8 text-center flex-1">
+          <h1 className="text-2xl font-bold text-text-primary">
+            Please log in to view teams
+          </h1>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -113,7 +141,7 @@ const Teams: React.FC = () => {
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 {teams
-                  .filter((team) => team.members.includes(currentUserId ?? ""))
+                  .filter((team) => team.members.includes(currentUserId))
                   .map((team) => (
                     <TeamCard key={team.id} team={team} />
                   ))}
@@ -134,7 +162,7 @@ const Teams: React.FC = () => {
             <div className="space-y-4">
               {teams.flatMap((team: Team) =>
                 team.inviteCodes
-                  .filter((inv: Invite) => inv.email === user?.email)
+                  .filter((inv: Invite) => inv.email === user.email)
                   .map((inv: Invite) => (
                     <div
                       key={inv.code}
@@ -220,6 +248,18 @@ const Teams: React.FC = () => {
           <button>close</button>
         </form>
       </dialog>
+
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
     </div>
   );
 };

@@ -9,6 +9,7 @@ import Card from "../components/Card";
 import InputField from "../components/InputField";
 import Navbar from "../components/Navbar";
 import type { ITask, User } from "../types";
+import { getSocket } from "../utils/socket";
 
 const Team: React.FC = () => {
   const { teamId } = useParams<{ teamId: string }>();
@@ -41,8 +42,6 @@ const Team: React.FC = () => {
   const leaveModalRef = useRef<HTMLDialogElement>(null);
 
   const currentUserId = user?.id;
-  console.log("Team ID from useParams:", teamId);
-  console.log("Current User ID:", currentUserId);
 
   const team = teams.find((t) => t.id === teamId);
   const tasks = teamTasks.filter((t) => t.teamId === teamId);
@@ -52,12 +51,68 @@ const Team: React.FC = () => {
 
   useEffect(() => {
     if (teamId && currentUserId) {
-      console.log("Fetching initial data for team:", teamId);
       fetchInitialData(teamId);
     }
   }, [teamId, currentUserId, fetchInitialData]);
 
-  const handleCreateOrUpdateTask = () => {
+  useEffect(() => {
+    const socket = getSocket();
+
+    if (!teamId || !socket) return;
+
+    socket.on(
+      "TASK_CREATED_NOTIFICATION",
+      (data: { teamId: string; createdBy: string }) => {
+        if (data.teamId === teamId) {
+          fetchInitialData(teamId);
+        }
+      }
+    );
+
+    socket.on(
+      "TASK_EDIT_NOTIFICATION",
+      (data: { teamId: string; editedBy: string }) => {
+        if (data.teamId === teamId) {
+          fetchInitialData(teamId);
+        }
+      }
+    );
+
+    socket.on(
+      "TASK_DELETE_NOTIFICATION",
+      (data: { teamId: string; deletedBy: string }) => {
+        if (data.teamId === teamId) {
+          fetchInitialData(teamId);
+        }
+      }
+    );
+
+    socket.on(
+      "TASK_COMPLETED_NOTIFICATION",
+      (data: {
+        teamId: string;
+        taskTitle: string;
+        completedBy: string;
+        newStatus: string;
+      }) => {
+        if (data.teamId === teamId) {
+          fetchInitialData(teamId);
+          toast.info(
+            `${data.completedBy} marked task "${data.taskTitle}" as ${data.newStatus}`
+          );
+        }
+      }
+    );
+
+    return () => {
+      socket.off("TASK_CREATED_NOTIFICATION");
+      socket.off("TASK_COMPLETED_NOTIFICATION");
+      socket.off("TASK_EDIT_NOTIFICATION");
+      socket.off("TASK_DELETE_NOTIFICATION");
+    };
+  }, [teamId, fetchInitialData]);
+
+  const handleCreateOrUpdateTask = async () => {
     if (!taskTitle.trim()) {
       toast.error("Task title is required", { toastId: "task-title-error" });
       return;
@@ -75,21 +130,37 @@ const Team: React.FC = () => {
       assigneeId,
       isStarred: false,
       taskListId: "",
+      teamId: teamId!,
     };
 
-    console.log("handleCreateOrUpdateTask:", { editingTaskId, taskData });
+    try {
+      if (editingTaskId) {
+        await updateTeamTask(teamId!, editingTaskId, taskData);
+        const socket = getSocket();
+        socket?.emit("task:edit", {
+          teamId: teamId!,
+          editedBy: user.username,
+        });
+      } else {
+        await addTeamTask(teamId!, taskData, currentUserId);
 
-    if (editingTaskId) {
-      updateTeamTask(teamId!, editingTaskId, taskData);
-    } else {
-      taskData.teamId = teamId!;
-      addTeamTask(teamId!, taskData, currentUserId);
+        const socket = getSocket();
+        if (socket) {
+          socket.emit("task:create", {
+            teamId: teamId!,
+            createdBy: user.username,
+          });
+        }
+      }
+
+      resetTaskModal();
+    } catch (error) {
+      toast.error("Something went wrong creating task");
+      console.error(error);
     }
-    resetTaskModal();
   };
 
   const handleEditTask = (task: ITask) => {
-    console.log("handleEditTask:", { taskId: task.id, title: task.title });
     setTaskTitle(task.title);
     setTaskDesc(task.description || "");
     setTaskStatus(task.status);
@@ -102,19 +173,24 @@ const Team: React.FC = () => {
   };
 
   const handleUpdateTask = (taskId: string, updatedTask: Partial<ITask>) => {
-    console.log("handleUpdateTask:", { taskId, updatedTask });
     updateTeamTask(teamId!, taskId, updatedTask);
   };
 
   const handleDeleteTask = (taskId: string) => {
-    console.log("handleDeleteTask called:", { teamId, taskId, currentUserId });
     if (!teamId) {
-      console.error("teamId is undefined");
       toast.error("Team ID is missing", { toastId: "team-id-error" });
       return;
     }
     try {
       deleteTeamTask(teamId, taskId);
+
+      const socket = getSocket();
+      if (socket) {
+        socket.emit("task:delete", {
+          teamId: teamId!,
+          deletedBy: user?.username,
+        });
+      }
     } catch (error) {
       console.error("Error in handleDeleteTask:", error);
       toast.error("Failed to initiate task deletion", {
@@ -143,6 +219,12 @@ const Team: React.FC = () => {
     }
     leaveTeam(teamId!, currentUserId);
     leaveModalRef.current?.close();
+    const socket = getSocket();
+    socket?.emit("team:leave", {
+      teamId,
+      teamName: team?.name,
+      user: user?.username,
+    });
     navigate("/teams");
   };
 

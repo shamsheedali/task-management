@@ -97,7 +97,6 @@ export default class TeamTaskService
     }
 
     const tasks = await this._teamTaskRepository.find({ teamId });
-    logger.info(`Retrieved ${tasks.length} tasks for team: ${teamId}`);
     return tasks;
   }
 

@@ -146,4 +146,39 @@ export default class TaskController {
       })),
     });
   }
+
+  async getTaskSummary(req: AuthRequest, res: Response) {
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new AppError(
+        ResponseMessages.UNAUTHORIZED,
+        HttpStatus.UNAUTHORIZED
+      );
+    }
+
+    const summary = await this._taskService.getTaskSummary(userId);
+    res.status(HttpStatus.OK).json({
+      status: 'success',
+      message: 'Task summary retrieved successfully',
+      data: summary,
+    });
+  }
+
+  async getTaskStats(req: AuthRequest, res: Response) {
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new AppError(
+        ResponseMessages.UNAUTHORIZED,
+        HttpStatus.UNAUTHORIZED
+      );
+    }
+
+    const days = parseInt(req.query.days as string) || 7;
+    const stats = await this._taskService.getTaskStats(userId, days);
+    res.status(HttpStatus.OK).json({
+      status: 'success',
+      message: 'Task stats retrieved successfully',
+      data: stats,
+    });
+  }
 }

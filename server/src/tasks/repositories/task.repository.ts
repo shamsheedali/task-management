@@ -21,4 +21,8 @@ export default class TaskRepository
   async findByTaskListId(taskListId: string, userId: string): Promise<ITask[]> {
     return await this.model.find({ taskListId, userId }).exec();
   }
+
+  async find(query: FilterQuery<ITask>): Promise<ITask[]> {
+    return await this.model.find(query).exec();
+  }
 }

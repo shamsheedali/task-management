@@ -11,5 +11,6 @@ export interface ITeamService {
   ): Promise<{ code: string; email: string; expiresAt: Date }>;
   joinTeam(teamId: string, userId: string, code: string): Promise<ITeam>;
   joinTeamByCode(userId: string, code: string): Promise<ITeam>;
+  getTeamByCode(userId: string, code: string): Promise<ITeam>;
   leaveTeam(teamId: string, userId: string): Promise<void>;
 }

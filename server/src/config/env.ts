@@ -22,4 +22,5 @@ export const env = cleanEnv(process.env, {
   EMAIL_USER: str(),
   EMAIL_PASS: str(),
   INVITE_EXPIRY_MS: num({ default: 24 * 60 * 60 * 1000 }), // 24 hours in milliseconds
+  CORS_ORIGIN: url({ default: 'http://localhost:5173' }),
 });

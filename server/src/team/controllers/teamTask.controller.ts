@@ -26,19 +26,13 @@ export default class TeamTaskController {
     this._notificationService = notificationService;
   }
 
-  /**
-   * Creates a new task in a team.
-   * @param req - Request with team ID, task details, and authenticated user ID.
-   * @param res - Response with created task data.
-   */
   async createTeamTask(req: AuthRequest, res: Response) {
     const userId = req.user?.id;
-    if (!userId) {
+    if (!userId)
       throw new AppError(
         ResponseMessages.UNAUTHORIZED,
         HttpStatus.UNAUTHORIZED
       );
-    }
 
     const teamId = req.params.teamId;
     const {
@@ -59,12 +53,12 @@ export default class TeamTaskController {
       dueDate ? new Date(dueDate) : undefined,
       assigneeId
     );
-
     await this._notificationService.createNotification(
       teamId,
       `User ${req.user?.email} created task: ${title}`
     );
     const taskDTO: TeamTaskDTO = toTeamTaskDTO(task);
+
     res.status(HttpStatus.CREATED).json({
       status: 'success',
       message: 'Team task created successfully',
@@ -72,19 +66,13 @@ export default class TeamTaskController {
     });
   }
 
-  /**
-   * Retrieves all tasks in a team.
-   * @param req - Request with team ID and authenticated user ID.
-   * @param res - Response with team tasks.
-   */
   async getTeamTasks(req: AuthRequest, res: Response) {
     const userId = req.user?.id;
-    if (!userId) {
+    if (!userId)
       throw new AppError(
         ResponseMessages.UNAUTHORIZED,
         HttpStatus.UNAUTHORIZED
       );
-    }
 
     const teamId = req.params.teamId;
     const tasks = await this._teamTaskService.getTeamTasks(teamId, userId);
@@ -96,19 +84,13 @@ export default class TeamTaskController {
     });
   }
 
-  /**
-   * Updates a team task.
-   * @param req - Request with team ID, task ID, task updates, and authenticated user ID.
-   * @param res - Response with updated task data.
-   */
   async updateTeamTask(req: AuthRequest, res: Response) {
     const userId = req.user?.id;
-    if (!userId) {
+    if (!userId)
       throw new AppError(
         ResponseMessages.UNAUTHORIZED,
         HttpStatus.UNAUTHORIZED
       );
-    }
 
     const teamId = req.params.teamId;
     const taskId = req.params.taskId;
@@ -131,12 +113,12 @@ export default class TeamTaskController {
       dueDate ? new Date(dueDate) : undefined,
       assigneeId
     );
-
     await this._notificationService.createNotification(
       teamId,
       `User ${req.user?.email} updated task: ${task.title}`
     );
     const taskDTO: TeamTaskDTO = toTeamTaskDTO(task);
+
     res.status(HttpStatus.OK).json({
       status: 'success',
       message: 'Team task updated successfully',
@@ -144,19 +126,13 @@ export default class TeamTaskController {
     });
   }
 
-  /**
-   * Deletes a team task.
-   * @param req - Request with team ID, task ID, and authenticated user ID.
-   * @param res - Response with success message.
-   */
   async deleteTeamTask(req: AuthRequest, res: Response) {
     const userId = req.user?.id;
-    if (!userId) {
+    if (!userId)
       throw new AppError(
         ResponseMessages.UNAUTHORIZED,
         HttpStatus.UNAUTHORIZED
       );
-    }
 
     const teamId = req.params.teamId;
     const taskId = req.params.taskId;

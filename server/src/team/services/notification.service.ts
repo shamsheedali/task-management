@@ -45,9 +45,6 @@ export default class NotificationService
     }
 
     const notifications = await this._notificationRepository.find({ teamId });
-    logger.info(
-      `Retrieved ${notifications.length} notifications for team: ${teamId}`
-    );
     return notifications;
   }
 

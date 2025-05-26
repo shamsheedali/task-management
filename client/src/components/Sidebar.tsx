@@ -257,10 +257,14 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
           )}
           <div className="mt-auto pt-8 border-t border-gray-200">
-            <button className="flex items-center gap-2 text-text-secondary hover:text-primary-500 transition font-medium">
+            <Link
+              to="/stats"
+              className="flex items-center gap-2 text-text-secondary hover:text-primary-500 transition font-medium"
+              onClick={() => setIsSidebarOpen(false)}
+            >
               <ChartBar />
               Stats
-            </button>
+            </Link>
           </div>
         </div>
       </aside>
