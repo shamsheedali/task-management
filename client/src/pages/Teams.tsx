@@ -7,15 +7,16 @@ import useAuthStore from "../store/authStore";
 import TeamCard from "../components/TeamCard";
 import InputField from "../components/InputField";
 import Navbar from "../components/Navbar";
-import type { Team, Invite } from "../types";
+// import type { Team, Invite } from "../types";
 import { getSocket } from "../utils/socket";
 
 const Teams: React.FC = () => {
   const {
     teams,
-    users,
+    // users,
     addTeam,
     joinTeamByCode,
+    deleteTeam,
     fetchInitialData,
     isLoading,
     error,
@@ -67,6 +68,17 @@ const Teams: React.FC = () => {
       toast.error("Failed to join team. Invalid invite code.", {
         toastId: "join-error",
       });
+    }
+  };
+
+  const handleDeleteTeam = async (teamId: string) => {
+    try {
+      await deleteTeam(teamId);
+      toast.success("Team deleted successfully", { toastId: "delete-success" });
+      await fetchInitialData();
+    } catch (error) {
+      console.error("Error deleting team:", error);
+      toast.error("Failed to delete team", { toastId: "delete-error" });
     }
   };
 
@@ -143,48 +155,23 @@ const Teams: React.FC = () => {
                 {teams
                   .filter((team) => team.members.includes(currentUserId))
                   .map((team) => (
-                    <TeamCard key={team.id} team={team} />
+                    <TeamCard
+                      key={team.id}
+                      team={team}
+                      onDelete={() => handleDeleteTeam(team.id)}
+                    />
                   ))}
               </div>
             )}
           </div>
 
           <div className="mt-12">
-            <h2 className="text-2xl font-bold mb-4 text-text-primary">
-              Pending Invites
-            </h2>
             <button
               className="btn btn-outline btn-primary mb-4"
               onClick={() => inviteModalRef.current?.showModal()}
             >
               Join Team with Code
             </button>
-            <div className="space-y-4">
-              {teams.flatMap((team: Team) =>
-                team.inviteCodes
-                  .filter((inv: Invite) => inv.email === user.email)
-                  .map((inv: Invite) => (
-                    <div
-                      key={inv.code}
-                      className="bg-card dark:bg-neutral-800 p-4 rounded-xl shadow"
-                    >
-                      <p>
-                        Invited to <strong>{team.name}</strong> by{" "}
-                        {users.find((u) => u.id === team.creatorId)?.username}
-                      </p>
-                      <button
-                        className="btn btn-primary btn-sm mt-2"
-                        onClick={() => {
-                          setInviteCode(inv.code);
-                          handleJoinTeam();
-                        }}
-                      >
-                        Accept
-                      </button>
-                    </div>
-                  ))
-              )}
-            </div>
           </div>
         </div>
       </div>

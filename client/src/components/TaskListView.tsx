@@ -39,14 +39,14 @@ const TaskListView: React.FC<TaskListViewProps> = ({ list, starredTasks }) => {
               const res: ApiResponse<ITask[]> = await taskService.getTasks(
                 list.id
               );
-              updateTasksInList(list.id, res.data); // Sync taskLists.tasks
+              updateTasksInList(list.id, res.data);
               return res.data;
             })
           );
           fetchedTasks = allTasks.flat();
         } else if (list?.id) {
           const res: ApiResponse<ITask[]> = await taskService.getTasks(list.id);
-          updateTasksInList(list.id, res.data); // Sync taskLists.tasks
+          updateTasksInList(list.id, res.data);
           fetchedTasks = res.data;
         }
         setTasks(fetchedTasks);
@@ -65,7 +65,7 @@ const TaskListView: React.FC<TaskListViewProps> = ({ list, starredTasks }) => {
     };
 
     fetchTasks();
-  }, [list?.id, showAllTasks, taskLists.length]); // Fetch when list, view mode, or list count changes
+  }, [list?.id, showAllTasks, taskLists.length]);
 
   const handleCreateTask = async () => {
     if (!taskTitle.trim() || !selectedTaskListId) return;
@@ -76,7 +76,7 @@ const TaskListView: React.FC<TaskListViewProps> = ({ list, starredTasks }) => {
         description: taskDesc || undefined,
         status: taskStatus,
         isStarred: false,
-        dueDate: taskDueDate ? new Date(taskDueDate) : undefined,
+        dueDate: taskDueDate || undefined,
       };
 
       const res: ApiResponse<ITask> = await taskService.createTask(
@@ -84,7 +84,7 @@ const TaskListView: React.FC<TaskListViewProps> = ({ list, starredTasks }) => {
         taskData
       );
       setTasks((prev) => [...prev, res.data]);
-      updateTasksInList(selectedTaskListId, [...tasks, res.data]); // Sync taskLists.tasks
+      updateTasksInList(selectedTaskListId, [...tasks, res.data]);
       if (res.data.status === "done") {
         addCompletedTask(res.data.id);
       }
@@ -102,7 +102,7 @@ const TaskListView: React.FC<TaskListViewProps> = ({ list, starredTasks }) => {
         title: taskTitle,
         description: taskDesc || undefined,
         status: taskStatus,
-        dueDate: taskDueDate ? new Date(taskDueDate) : undefined,
+        dueDate: taskDueDate || undefined,
       };
 
       const res: ApiResponse<ITask> = await taskService.updateTask(
@@ -116,7 +116,7 @@ const TaskListView: React.FC<TaskListViewProps> = ({ list, starredTasks }) => {
       updateTasksInList(
         selectedTaskListId,
         tasks.map((task) => (task.id === editingTaskId ? res.data : task))
-      ); // Sync taskLists.tasks
+      );
       if (res.data.status === "done") {
         addCompletedTask(res.data.id);
       } else {
@@ -146,7 +146,7 @@ const TaskListView: React.FC<TaskListViewProps> = ({ list, starredTasks }) => {
     updateTasksInList(
       list?.id || "",
       tasks.filter((task) => task.id !== taskId)
-    ); // Sync taskLists.tasks
+    );
     removeCompletedTask(taskId);
   };
 

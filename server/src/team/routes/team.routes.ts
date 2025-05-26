@@ -152,8 +152,47 @@ router.get(
 
 /**
  * @swagger
+ * /api/teams/{teamId}:
+ *   delete:
+ *     summary: Delete a team
+ *     tags: [Teams]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: teamId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the team to delete
+ *     responses:
+ *       200:
+ *         description: Team deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status: { type: string, example: 'success' }
+ *                 message: { type: string, example: 'Team deleted successfully' }
+ *                 data: { type: null }
+ *       401:
+ *         description: Unauthorized or invalid token
+ *       403:
+ *         description: Only the team is not allowed to delete the team
+ *       404:
+ *         description: Team not found
+ */
+router.delete(
+  '/:teamId',
+  authMiddleware,
+  asyncWrap(teamController.deleteTeam.bind(teamController))
+);
+
+/**
+ * @swagger
  * /api/teams/{teamId}/invite:
- *   post:
+_popup
  *     summary: Generate an invite for a team
  *     tags: [Teams]
  *     security:

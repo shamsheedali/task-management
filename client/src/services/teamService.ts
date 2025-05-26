@@ -87,6 +87,11 @@ const teamService = {
     const response = await api.get(`/teams/${teamId}/notifications`);
     return response.data;
   },
+
+  deleteTeam: async (teamId: string): Promise<ApiResponse<null>> => {
+    const response = await api.delete(`/teams/${teamId}`);
+    return response.data;
+  },
 };
 
 export default teamService;

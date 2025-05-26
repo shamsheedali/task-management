@@ -10,6 +10,7 @@ import BaseService from '../../common/services/base.service';
 import { env } from '../../config/env';
 import { ITeamService } from '../interfaces/team-service.interface';
 import { ITeamRepository } from '../interfaces/team-repository.interface';
+import { ITaskRepository } from '../../tasks/interfaces/task-repository.interface';
 
 @injectable()
 export default class TeamService
@@ -18,14 +19,17 @@ export default class TeamService
 {
   private _teamRepository: ITeamRepository;
   private _userRepository: IUserRepository;
+  private _taskRepository: ITaskRepository;
 
   constructor(
     @inject(TYPES.TeamRepository) teamRepository: ITeamRepository,
-    @inject(TYPES.UserRepository) userRepository: IUserRepository
+    @inject(TYPES.UserRepository) userRepository: IUserRepository,
+    @inject(TYPES.TaskRepository) taskRepository: ITaskRepository
   ) {
     super(teamRepository);
     this._teamRepository = teamRepository;
     this._userRepository = userRepository;
+    this._taskRepository = taskRepository;
   }
 
   async createTeam(name: string, creatorId: string): Promise<ITeam> {
@@ -206,7 +210,7 @@ export default class TeamService
       throw new AppError(ResponseMessages.NOT_FOUND, HttpStatus.NOT_FOUND);
     }
 
-    logger.info(`hello ${userId}, ${code}`); // 👋 This will now show
+    logger.info(`hello ${userId}, ${code}`);
     const team = await this._teamRepository.findOne({
       'inviteCodes.code': code,
     });
@@ -250,5 +254,31 @@ export default class TeamService
     });
 
     logger.info(`User ${userId} left team: ${teamId}`);
+  }
+
+  async deleteTeam(teamId: string, userId: string): Promise<void> {
+    const team = await super.findById(teamId);
+    if (!team) {
+      throw new AppError(ResponseMessages.NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+
+    if (team.creatorId !== userId) {
+      throw new AppError(
+        'Only the team creator can delete the team',
+        HttpStatus.FORBIDDEN
+      );
+    }
+
+    await this._teamRepository.delete(teamId);
+    await this._taskRepository.deleteMany({ teamId });
+
+    // Remove team from all members' user records
+    for (const memberId of team.members) {
+      await this._userRepository.update(memberId, {
+        $pull: { teams: teamId },
+      });
+    }
+
+    logger.info(`Team deleted: ${teamId} by user: ${userId}`);
   }
 }

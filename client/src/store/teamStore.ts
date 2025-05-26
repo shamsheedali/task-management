@@ -27,6 +27,7 @@ interface TeamState {
     updates: Partial<ITask>
   ) => Promise<void>;
   deleteTeamTask: (teamId: string, taskId: string) => Promise<void>;
+  deleteTeam: (teamId: string) => Promise<void>; // Add deleteTeam
   addNotification: (teamId: string, message: string) => void;
 }
 
@@ -83,9 +84,9 @@ const useTeamStore = create<TeamState>((set, get) => ({
               inviteCodes: [
                 ...(team.inviteCodes || []),
                 {
-                  code: response.data.code,
+                  code: "",
                   email: response.data.email,
-                  expiresAt: response.data.expiresAt.toISOString(),
+                  expiresAt: response.data.expiresAt,
                 },
               ],
             }
@@ -191,6 +192,17 @@ const useTeamStore = create<TeamState>((set, get) => ({
       teamTasks: state.teamTasks.filter((task) => task.id !== taskId),
     }));
     get().addNotification(teamId, `Deleted a task`);
+  },
+
+  deleteTeam: async (teamId: string) => {
+    await teamService.deleteTeam(teamId);
+    set((state) => ({
+      teams: state.teams.filter((team) => team.id !== teamId),
+      teamTasks: state.teamTasks.filter((task) => task.teamId !== teamId),
+      notifications: state.notifications.filter(
+        (notification) => notification.teamId !== teamId
+      ),
+    }));
   },
 
   addNotification: (teamId: string, message: string) => {

@@ -29,7 +29,7 @@ app.use(helmet());
 // app.use(limiter);
 app.use(express.json());
 app.use(cookieParser());
-// app.use(morgan('combined', { stream: morganStream }));
+app.use(morgan('combined', { stream: morganStream }));
 
 // Routes
 app.use('/api/users', userRoutes);
