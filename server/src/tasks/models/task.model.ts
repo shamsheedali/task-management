@@ -32,7 +32,6 @@ const taskSchema = new Schema<ITask>(
   { timestamps: true }
 );
 
-// Tasks are unique per taskListId and title for a user
 taskSchema.index({ taskListId: 1, userId: 1, title: 1 }, { unique: true });
 
 export const Task = model<ITask>('Task', taskSchema);

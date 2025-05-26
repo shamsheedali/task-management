@@ -6,4 +6,5 @@ export interface ITaskRepository extends IBaseRepository<ITask> {
   findOne(query: FilterQuery<ITask>): Promise<ITask | null>;
   findByTaskListId(taskListId: string, userId: string): Promise<ITask[]>;
   find(query: FilterQuery<ITask>): Promise<ITask[]>;
+  deleteMany(query: FilterQuery<ITask>): Promise<void>;
 }

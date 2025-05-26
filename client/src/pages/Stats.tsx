@@ -79,7 +79,7 @@ const Stats: React.FC = () => {
                       outerRadius={100}
                       fill="#8884d8"
                     >
-                      {taskSummary?.map((entry, index) => (
+                      {taskSummary?.map((_, index) => (
                         <Cell
                           key={`cell-${index}`}
                           fill={COLORS[index % COLORS.length]}
@@ -98,8 +98,11 @@ const Stats: React.FC = () => {
                 </div>
                 {/* Legend */}
                 <div className="mt-4 flex justify-center gap-6">
-                  {taskSummary?.map((entry, index) => (
-                    <div key={entry.name} className="flex items-center gap-2">
+                  {taskSummary?.map((_, index) => (
+                    <div
+                      key={taskSummary[index].name}
+                      className="flex items-center gap-2"
+                    >
                       <div
                         className="w-4 h-4 rounded-full"
                         style={{
@@ -107,7 +110,7 @@ const Stats: React.FC = () => {
                         }}
                       />
                       <span className="text-sm text-text-secondary">
-                        {entry.name}
+                        {taskSummary[index].name}
                       </span>
                     </div>
                   ))}

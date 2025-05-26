@@ -37,7 +37,7 @@ const Card: React.FC<TaskCardProps> = ({
     removeStarredTask,
   } = useTaskStore();
   const { users, addNotification } = useTeamStore();
-  const { user } = useAuthStore(); // Get authenticated user
+  const { user } = useAuthStore();
 
   const subtasks = allTasks.filter((t) => t.parentTaskId === task.id);
   const completed = task.status === "done";
@@ -61,22 +61,18 @@ const Card: React.FC<TaskCardProps> = ({
           data: { ...task, status: newStatus },
         };
 
-        // Add local notification
         if (task.teamId) {
-          addNotification({
-            id: `notif-${Date.now()}`,
-            message: `${
-              user?.id ? "You" : "User"
-            } marked task as ${newStatus}: ${task.title}`,
-            teamId: task.teamId,
-            timestamp: new Date().toISOString(),
-          });
+          addNotification(
+            task.teamId,
+            `${user?.id ? "You" : "User"} marked task as ${newStatus}: ${
+              task.title
+            }`
+          );
 
           toast.info(
             `${user?.id ? "You" : "User"} marked task as ${newStatus}`
           );
 
-          // Emit the socket event for others
           const socket = getSocket();
           socket?.emit("task:complete", {
             teamId: task.teamId,
@@ -149,7 +145,7 @@ const Card: React.FC<TaskCardProps> = ({
         parentTaskId: task.id,
         teamId: task.teamId,
         creatorId: user?.id,
-        userId: user?.id, // Use authenticated user ID
+        userId: user?.id,
       };
       let res: ApiResponse<ITask>;
       if (task.teamId) {
@@ -164,14 +160,10 @@ const Card: React.FC<TaskCardProps> = ({
           } as ITask,
         };
         if (task.teamId) {
-          addNotification({
-            id: `notif-${Date.now()}`,
-            message: `${
-              user?.id ? "You" : "User"
-            } created subtask: ${subtaskTitle}`,
-            teamId: task.teamId,
-            timestamp: new Date().toISOString(),
-          });
+          addNotification(
+            task.teamId,
+            `${user?.id ? "You" : "User"} created subtask: ${subtaskTitle}`
+          );
           toast.success("Subtask created");
         }
       } else {
@@ -191,7 +183,6 @@ const Card: React.FC<TaskCardProps> = ({
       toast.error("You must be logged in to delete a task");
       return;
     }
-    // Optionally remove creator check if backend allows any team member to delete
     if (task.teamId && task.creatorId !== user.id) {
       toast.error("Only the task creator can delete this task");
       return;
@@ -199,12 +190,10 @@ const Card: React.FC<TaskCardProps> = ({
     try {
       onDeleteTask(task.id);
       if (task.teamId) {
-        addNotification({
-          id: `notif-${Date.now()}`,
-          message: `${user?.id ? "You" : "User"} deleted task: ${task.title}`,
-          teamId: task.teamId,
-          timestamp: new Date().toISOString(),
-        });
+        addNotification(
+          task.teamId,
+          `${user?.id ? "You" : "User"} deleted task: ${task.title}`
+        );
       }
     } catch (err: unknown) {
       console.error("Failed to delete task:", err);

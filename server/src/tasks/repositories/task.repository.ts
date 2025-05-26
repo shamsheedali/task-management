@@ -25,4 +25,8 @@ export default class TaskRepository
   async find(query: FilterQuery<ITask>): Promise<ITask[]> {
     return await this.model.find(query).exec();
   }
+
+  async deleteMany(query: FilterQuery<ITask>): Promise<void> {
+    await this.model.deleteMany(query).exec();
+  }
 }

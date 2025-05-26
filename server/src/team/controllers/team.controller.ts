@@ -113,6 +113,7 @@ export default class TeamController {
       status: 'success',
       message: 'Invite sent successfully',
       data: {
+        code: invite.code, // Added code to response
         email: invite.email,
         expiresAt: invite.expiresAt,
       },
@@ -198,6 +199,24 @@ export default class TeamController {
     res.status(HttpStatus.OK).json({
       status: 'success',
       message: 'Left team successfully',
+    });
+  }
+
+  async deleteTeam(req: AuthRequest, res: Response) {
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new AppError(
+        ResponseMessages.UNAUTHORIZED,
+        HttpStatus.UNAUTHORIZED
+      );
+    }
+
+    const teamId = req.params.teamId;
+    await this._teamService.deleteTeam(teamId, userId);
+    res.status(HttpStatus.OK).json({
+      status: 'success',
+      message: 'Team deleted successfully',
+      data: null,
     });
   }
 }
