@@ -16,7 +16,7 @@ const Login: React.FC = () => {
     onSuccess: (data) => {
       if (data.data) {
         setUser({
-          id: data.data._id as string,
+          id: data.data.id as string,
           username: data.data.username,
           email: data.data.email,
         });

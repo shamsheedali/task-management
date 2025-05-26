@@ -4,5 +4,6 @@ import { UpdateQuery } from 'mongoose';
 
 export interface IUserRepository extends IBaseRepository<IUser> {
   findByEmail(email: string): Promise<IUser | null>;
+  findAll(): Promise<IUser[]>;
   update(id: string, data: UpdateQuery<IUser>): Promise<IUser | null>;
 }

@@ -7,7 +7,7 @@ import HttpStatus from '../common/constants/httpStatus';
 import logger from '../utils/logger';
 
 export interface AuthRequest extends Request {
-  user?: { id: string };
+  user?: { id: string; email: string };
 }
 
 export const authMiddleware = async (
@@ -21,8 +21,11 @@ export const authMiddleware = async (
   }
 
   try {
-    const decoded = jwt.verify(token, env.JWT_SECRET) as { id: string };
-    req.user = { id: decoded.id };
+    const decoded = jwt.verify(token, env.JWT_SECRET) as {
+      id: string;
+      email: string;
+    };
+    req.user = { id: decoded.id, email: decoded.email };
     next();
   } catch (error) {
     logger.error('Access token verification failed:', error);

@@ -1,8 +1,9 @@
-import React, { useState, useRef } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import React, { useState, useRef, useEffect } from "react";
+import { useParams, Link as RouterLink, useNavigate } from "react-router-dom";
 import { Plus, Mail, LogOut } from "lucide-react";
 import { toast } from "react-toastify";
 import useTeamStore from "../store/teamStore";
+import useAuthStore from "../store/authStore";
 import MemberCard from "../components/MemberCard";
 import Card from "../components/Card";
 import InputField from "../components/InputField";
@@ -20,22 +21,28 @@ const Team: React.FC = () => {
     updateTeamTask,
     deleteTeamTask,
     addInvite,
-    addNotification,
     leaveTeam,
+    fetchInitialData,
+    isLoading,
+    error,
   } = useTeamStore();
+  const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState<"tasks" | "members">("tasks");
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDesc, setTaskDesc] = useState("");
   const [taskStatus, setTaskStatus] = useState<"todo" | "done">("todo");
   const [taskDueDate, setTaskDueDate] = useState("");
   const [assigneeId, setAssigneeId] = useState<string | null>(null);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [inviteEmail, setInviteEmail] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const taskModalRef = useRef<HTMLDialogElement>(null);
   const inviteModalRef = useRef<HTMLDialogElement>(null);
   const leaveModalRef = useRef<HTMLDialogElement>(null);
-  const currentUserId = "user1"; // Dummy current user
+
+  const currentUserId = user?.id;
+  console.log("Team ID from useParams:", teamId);
+  console.log("Current User ID:", currentUserId);
 
   const team = teams.find((t) => t.id === teamId);
   const tasks = teamTasks.filter((t) => t.teamId === teamId);
@@ -43,38 +50,46 @@ const Team: React.FC = () => {
   const completedTasks = tasks.filter((t) => t.status === "done");
   const isCreator = team?.creatorId === currentUserId;
 
-  const handleCreateTask = () => {
+  useEffect(() => {
+    if (teamId && currentUserId) {
+      console.log("Fetching initial data for team:", teamId);
+      fetchInitialData(teamId);
+    }
+  }, [teamId, currentUserId, fetchInitialData]);
+
+  const handleCreateOrUpdateTask = () => {
     if (!taskTitle.trim()) {
       toast.error("Task title is required", { toastId: "task-title-error" });
       return;
     }
-    const newTask: ITask = {
-      id: `task-${Date.now()}`,
+    if (!currentUserId) {
+      toast.error("You must be logged in", { toastId: "auth-error" });
+      return;
+    }
+
+    const taskData: Partial<ITask> = {
       title: taskTitle,
       description: taskDesc || "",
       status: taskStatus,
       dueDate: taskDueDate ? taskDueDate : undefined,
-      teamId: teamId!,
       assigneeId,
-      creatorId: currentUserId,
-      userId: currentUserId,
       isStarred: false,
       taskListId: "",
     };
-    addTeamTask(newTask);
-    addNotification({
-      id: `notif-${Date.now()}`,
-      message: `${
-        currentUserId === "user1" ? "You" : "User"
-      } created task: ${taskTitle}`,
-      teamId: teamId!,
-      timestamp: new Date().toISOString(),
-    });
-    toast.success("Task created");
+
+    console.log("handleCreateOrUpdateTask:", { editingTaskId, taskData });
+
+    if (editingTaskId) {
+      updateTeamTask(teamId!, editingTaskId, taskData);
+    } else {
+      taskData.teamId = teamId!;
+      addTeamTask(teamId!, taskData, currentUserId);
+    }
     resetTaskModal();
   };
 
   const handleEditTask = (task: ITask) => {
+    console.log("handleEditTask:", { taskId: task.id, title: task.title });
     setTaskTitle(task.title);
     setTaskDesc(task.description || "");
     setTaskStatus(task.status);
@@ -82,24 +97,30 @@ const Team: React.FC = () => {
       task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : ""
     );
     setAssigneeId(task.assigneeId ?? null);
+    setEditingTaskId(task.id);
     taskModalRef.current?.showModal();
   };
 
-  const handleUpdateTask = (taskId: string, updatedTask: ITask) => {
-    updateTeamTask(taskId, updatedTask);
-    addNotification({
-      id: `notif-${Date.now()}`,
-      message: `${currentUserId === "user1" ? "You" : "User"} updated task: ${
-        updatedTask.title
-      }`,
-      teamId: teamId!,
-      timestamp: new Date().toISOString(),
-    });
-    toast.success("Task updated");
+  const handleUpdateTask = (taskId: string, updatedTask: Partial<ITask>) => {
+    console.log("handleUpdateTask:", { taskId, updatedTask });
+    updateTeamTask(teamId!, taskId, updatedTask);
   };
 
   const handleDeleteTask = (taskId: string) => {
-    deleteTeamTask(taskId);
+    console.log("handleDeleteTask called:", { teamId, taskId, currentUserId });
+    if (!teamId) {
+      console.error("teamId is undefined");
+      toast.error("Team ID is missing", { toastId: "team-id-error" });
+      return;
+    }
+    try {
+      deleteTeamTask(teamId, taskId);
+    } catch (error) {
+      console.error("Error in handleDeleteTask:", error);
+      toast.error("Failed to initiate task deletion", {
+        toastId: "delete-init-error",
+      });
+    }
   };
 
   const handleInvite = () => {
@@ -110,37 +131,17 @@ const Team: React.FC = () => {
       toast.error("Valid email is required", { toastId: "invite-email-error" });
       return;
     }
-    const invite = {
-      code: `inv-${Date.now()}`,
-      email: inviteEmail,
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-    };
-    addInvite(teamId!, invite);
-    addNotification({
-      id: `notif-${Date.now()}`,
-      message: `${
-        currentUserId === "user1" ? "You" : "User"
-      } invited ${inviteEmail} to the team`,
-      teamId: teamId!,
-      timestamp: new Date().toISOString(),
-    });
-    toast.success("Invite sent");
+    addInvite(teamId!, inviteEmail);
     setInviteEmail("");
     inviteModalRef.current?.close();
   };
 
   const handleLeaveTeam = () => {
+    if (!currentUserId) {
+      toast.error("You must be logged in", { toastId: "auth-error" });
+      return;
+    }
     leaveTeam(teamId!, currentUserId);
-    addNotification({
-      id: `notif-${Date.now()}`,
-      message: `${
-        currentUserId === "user1" ? "You" : "User"
-      } left the team`,
-      teamId: teamId!,
-      timestamp: new Date().toISOString(),
-    });
-    toast.success("You have left the team");
-    setShowLeaveConfirm(false);
     leaveModalRef.current?.close();
     navigate("/teams");
   };
@@ -151,20 +152,93 @@ const Team: React.FC = () => {
     setTaskStatus("todo");
     setTaskDueDate("");
     setAssigneeId(null);
+    setEditingTaskId(null);
     taskModalRef.current?.close();
   };
 
-  if (!team || !team.members.includes(currentUserId)) {
+  if (!user || !currentUserId) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-bg via-primary-50 to-secondary-500/10 flex flex-col">
-        <Navbar isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />
+        <Navbar
+          isSidebarOpen={isSidebarOpen}
+          setIsSidebarOpen={setIsSidebarOpen}
+        />
         <div className="pt-28 p-8 text-center flex-1">
           <h1 className="text-2xl font-bold text-text-primary">
-            {team ? "You are not a member of this team" : "Team not found"}
+            Please log in to view team
           </h1>
-          <Link to="/teams" className="btn btn-primary mt-4">
+          <RouterLink to="/login" className="btn btn-primary mt-4">
+            Log In
+          </RouterLink>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-bg via-primary-50 to-secondary-500/10 flex flex-col">
+        <Navbar
+          isSidebarOpen={isSidebarOpen}
+          setIsSidebarOpen={setIsSidebarOpen}
+        />
+        <div className="pt-28 p-8 text-center flex-1">
+          <h1 className="text-2xl font-bold text-text-primary">Loading...</h1>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-bg via-primary-50 to-secondary-500/10 flex flex-col">
+        <Navbar
+          isSidebarOpen={isSidebarOpen}
+          setIsSidebarOpen={setIsSidebarOpen}
+        />
+        <div className="pt-28 p-8 text-center flex-1">
+          <h1 className="text-2xl font-bold text-text-primary">{error}</h1>
+          <RouterLink to="/teams" className="btn btn-primary mt-4">
             Back to Teams
-          </Link>
+          </RouterLink>
+        </div>
+      </div>
+    );
+  }
+
+  if (!team) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-bg via-primary-50 to-secondary-500/10 flex flex-col">
+        <Navbar
+          isSidebarOpen={isSidebarOpen}
+          setIsSidebarOpen={setIsSidebarOpen}
+        />
+        <div className="pt-28 p-8 text-center flex-1">
+          <h1 className="text-2xl font-bold text-text-primary">
+            Team not found
+          </h1>
+          <RouterLink to="/teams" className="btn btn-primary mt-4">
+            Back to Teams
+          </RouterLink>
+        </div>
+      </div>
+    );
+  }
+
+  if (!team.members.includes(currentUserId)) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-bg via-primary-50 to-secondary-500/10 flex flex-col">
+        <Navbar
+          isSidebarOpen={isSidebarOpen}
+          setIsSidebarOpen={setIsSidebarOpen}
+        />
+        <div className="pt-28 p-8 text-center flex-1">
+          <h1 className="text-2xl font-bold text-text-primary">
+            You are not a member of this team
+          </h1>
+          <RouterLink to="/teams" className="btn btn-primary mt-4">
+            Back to Teams
+          </RouterLink>
         </div>
       </div>
     );
@@ -172,26 +246,37 @@ const Team: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-bg via-primary-50 to-secondary-500/10 flex flex-col">
-      <Navbar isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />
+      <Navbar
+        isSidebarOpen={isSidebarOpen}
+        setIsSidebarOpen={setIsSidebarOpen}
+      />
       <div className="pt-28 p-8 flex-1">
         <div className="max-w-4xl mx-auto w-full">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <Link to="/teams" className="text-primary-500 hover:underline">
+              <RouterLink
+                to="/teams"
+                className="text-primary-500 hover:underline"
+              >
                 Teams
-              </Link>
+              </RouterLink>
               <span className="mx-2">/</span>
               <h1 className="inline text-3xl font-extrabold tracking-tight text-text-primary">
                 {team.name}
               </h1>
             </div>
-            <button
-              className="btn btn-primary flex items-center gap-2"
-              onClick={() => taskModalRef.current?.showModal()}
-            >
-              <Plus size={20} />
-              Add Task
-            </button>
+            <div className="flex gap-2">
+              <button
+                className="btn btn-primary flex items-center gap-2"
+                onClick={() => {
+                  setEditingTaskId(null);
+                  taskModalRef.current?.showModal();
+                }}
+              >
+                <Plus size={20} />
+                Add Task
+              </button>
+            </div>
           </div>
 
           <div className="tabs mb-6">
@@ -227,7 +312,7 @@ const Team: React.FC = () => {
                           task={task}
                           allTasks={tasks}
                           starred={task.isStarred}
-                          setTasks={() => {}} // Empty function, updates handled by useTeamStore
+                          setTasks={() => {}}
                           onUpdateTask={(updatedTask) =>
                             handleUpdateTask(task.id, updatedTask)
                           }
@@ -249,7 +334,7 @@ const Team: React.FC = () => {
                             task={task}
                             allTasks={tasks}
                             starred={task.isStarred}
-                            setTasks={() => {}} // Empty function, updates handled by useTeamStore
+                            setTasks={() => {}}
                             onUpdateTask={(updatedTask) =>
                               handleUpdateTask(task.id, updatedTask)
                             }
@@ -278,10 +363,7 @@ const Team: React.FC = () => {
                 {!isCreator && (
                   <button
                     className="btn btn-danger flex items-center gap-2"
-                    onClick={() => {
-                      setShowLeaveConfirm(true);
-                      leaveModalRef.current?.showModal();
-                    }}
+                    onClick={() => leaveModalRef.current?.showModal()}
                   >
                     <LogOut size={20} />
                     Leave Team
@@ -306,7 +388,9 @@ const Team: React.FC = () => {
 
         <dialog ref={taskModalRef} className="modal">
           <div className="modal-box bg-card dark:bg-neutral-800 p-6 rounded-2xl shadow-xl flex flex-col gap-4 animate-fade-in">
-            <h3 className="font-bold text-lg">Create Task</h3>
+            <h3 className="font-bold text-lg">
+              {editingTaskId ? "Edit Task" : "Create Task"}
+            </h3>
             <InputField
               type="text"
               placeholder="Task title"
@@ -353,14 +437,11 @@ const Team: React.FC = () => {
             <div className="flex gap-2">
               <button
                 className="btn btn-primary btn-sm"
-                onClick={handleCreateTask}
+                onClick={handleCreateOrUpdateTask}
               >
-                Create
+                {editingTaskId ? "Update" : "Create"}
               </button>
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={resetTaskModal}
-              >
+              <button className="btn btn-ghost btn-sm" onClick={resetTaskModal}>
                 Cancel
               </button>
             </div>
@@ -381,10 +462,7 @@ const Team: React.FC = () => {
               autoFocus
             />
             <div className="flex gap-2">
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={handleInvite}
-              >
+              <button className="btn btn-primary btn-sm" onClick={handleInvite}>
                 Send Invite
               </button>
               <button
@@ -416,10 +494,7 @@ const Team: React.FC = () => {
               </button>
               <button
                 className="btn btn-ghost btn-sm"
-                onClick={() => {
-                  setShowLeaveConfirm(false);
-                  leaveModalRef.current?.close();
-                }}
+                onClick={() => leaveModalRef.current?.close()}
               >
                 Cancel
               </button>

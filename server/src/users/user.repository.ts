@@ -19,6 +19,10 @@ export default class UserRepository
     return this.model.findOne({ email }).exec();
   }
 
+  async findAll(): Promise<IUser[]> {
+    return this.model.find().exec();
+  }
+
   async update(id: string, data: UpdateQuery<IUser>): Promise<IUser | null> {
     return this.model.findByIdAndUpdate(id, data, { new: true }).exec();
   }
