@@ -34,7 +34,6 @@ export default class TaskListService
     }
 
     const taskLists = await this._taskListRepository.find({ userId });
-    logger.info(`Retrieved ${taskLists.length} task lists for user: ${userId}`);
     return taskLists;
   }
 

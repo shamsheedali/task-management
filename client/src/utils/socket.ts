@@ -1,25 +1,22 @@
-import { io, Socket } from "socket.io-client";
-
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:5000";
+import io from "socket.io-client";
+import type { Socket } from "socket.io-client";
 
 let socket: Socket | null = null;
 
-export function getSocket(): Socket {
-  if (!socket) {
-    const token = localStorage.getItem("userToken");
-    socket = io(SOCKET_URL, {
-      auth: { token: `Bearer ${token}` },
-      transports: ["websocket"],
-      autoConnect: true,
-      reconnection: true,
-    });
-  }
-  return socket;
-}
+export const connectSocket = (): void => {
+  if (socket) return;
+  const token = localStorage.getItem("userToken"); // Get token from localStorage
+  socket = io("http://localhost:5000", {
+    transports: ["websocket"],
+    auth: { token: token ? `Bearer ${token}` : "" }, // Send Bearer token
+  });
+};
 
-export function disconnectSocket() {
+export const disconnectSocket = (): void => {
   if (socket) {
     socket.disconnect();
     socket = null;
   }
-}
+};
+
+export const getSocket = (): Socket | null => socket;

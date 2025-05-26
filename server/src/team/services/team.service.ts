@@ -63,7 +63,6 @@ export default class TeamService
     }
 
     const teams = await this._teamRepository.find({ members: userId });
-    logger.info(`Retrieved ${teams.length} teams for user: ${userId}`);
     return teams;
   }
 
@@ -79,8 +78,6 @@ export default class TeamService
         HttpStatus.FORBIDDEN
       );
     }
-
-    logger.info(`Team retrieved: ${teamId} for user: ${userId}`);
     return team;
   }
 
@@ -201,6 +198,31 @@ export default class TeamService
     }
 
     return this.joinTeam(team._id, userId, code);
+  }
+
+  async getTeamByCode(userId: string, code: string): Promise<ITeam> {
+    const user = await this._userRepository.findById(userId);
+    if (!user) {
+      throw new AppError(ResponseMessages.NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+
+    logger.info(`hello ${userId}, ${code}`); // 👋 This will now show
+    const team = await this._teamRepository.findOne({
+      'inviteCodes.code': code,
+    });
+    logger.info(`team: ${team}`);
+    if (!team) {
+      logger.info('JoinTeamByCode Failed:', {
+        providedCode: code,
+        userId,
+        userEmail: user.email,
+      });
+      throw new AppError(
+        'Invalid or expired invite code',
+        HttpStatus.BAD_REQUEST
+      );
+    }
+    return team;
   }
 
   async leaveTeam(teamId: string, userId: string): Promise<void> {

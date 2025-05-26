@@ -8,6 +8,7 @@ import TeamCard from "../components/TeamCard";
 import InputField from "../components/InputField";
 import Navbar from "../components/Navbar";
 import type { Team, Invite } from "../types";
+import { getSocket } from "../utils/socket";
 
 const Teams: React.FC = () => {
   const {
@@ -51,6 +52,16 @@ const Teams: React.FC = () => {
       setInviteCode("");
       inviteModalRef.current?.close();
       await fetchInitialData();
+
+      // Emit socket event after successful join
+      const socket = getSocket();
+      if (socket && user) {
+        socket.emit("TEAM_USER_JOINED", {
+          inviteCode: inviteCode,
+          userId: user.id,
+          username: user.username || user.email,
+        });
+      }
     } catch (error) {
       console.error("Error joining team:", error);
       toast.error("Failed to join team. Invalid invite code.", {
